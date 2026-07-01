@@ -1,0 +1,19 @@
+{
+  "name": "knowledgeverse-backend",
+  "version": "1.0.0",
+  "description": "AI backend for KnowledgeVerse app",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@huggingface/inference": "^4.13.20",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "openai": "^4.104.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
