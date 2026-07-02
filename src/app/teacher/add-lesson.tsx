@@ -1,10 +1,10 @@
 import { useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
+  Alert,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
 } from "react-native";
 
 import { createLesson } from "../../services/lessonService";
@@ -120,9 +120,9 @@ export default function AddLesson() {
           color: "white",
           padding: 15,
           borderRadius: 12,
-          marginBottom: 15,
           height: 120,
           textAlignVertical: "top",
+          marginBottom: 15,
         }}
       />
 
@@ -131,6 +131,7 @@ export default function AddLesson() {
         placeholderTextColor="#9CA3AF"
         value={videoUrl}
         onChangeText={setVideoUrl}
+        autoCapitalize="none"
         style={{
           backgroundColor: "#1F2937",
           color: "white",
@@ -145,6 +146,7 @@ export default function AddLesson() {
         placeholderTextColor="#9CA3AF"
         value={pdfUrl}
         onChangeText={setPdfUrl}
+        autoCapitalize="none"
         style={{
           backgroundColor: "#1F2937",
           color: "white",
@@ -166,11 +168,11 @@ export default function AddLesson() {
           style={{
             color: "white",
             textAlign: "center",
-            fontWeight: "bold",
             fontSize: 18,
+            fontWeight: "bold",
           }}
         >
-          Save Lesson
+          💾 Save Lesson
         </Text>
       </TouchableOpacity>
     </ScrollView>
