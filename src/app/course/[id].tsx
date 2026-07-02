@@ -11,8 +11,15 @@ import {
 
 import VideoPlayer from "../../components/VideoPlayer";
 
+import { useAuth } from "../../context/AuthContext";
+
 import { hasAccess } from "../../services/accessService";
 import { getLessons } from "../../services/lessonService";
+import {
+  completeLesson,
+  getProgress,
+  progressPercent,
+} from "../../services/progressService";
 import { payForCourse } from "../../services/razorpayService";
 import { addToWishlist } from "../../services/wishlistService";
 
@@ -27,14 +34,22 @@ interface Lesson {
 
 export default function CourseDetail() {
   const { id } = useLocalSearchParams();
+  const { user } = useAuth();
 
   const [access, setAccess] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [lessons, setLessons] = useState<Lesson[]>([]);
-
   const [selectedLesson, setSelectedLesson] =
     useState<Lesson | null>(null);
+
+  const [completedLessons, setCompletedLessons] =
+    useState<string[]>([]);
+
+  const [progress, setProgress] = useState(0);
+
+const [courseCompleted, setCourseCompleted] =
+  useState(false);
 
   useEffect(() => {
     loadCourse();
@@ -50,7 +65,40 @@ export default function CourseDetail() {
 
       setLessons(data);
 
-      if (data.length > 0) {
+      if (user) {
+        const saved = await getProgress(
+          user.uid,
+          id as string
+        );
+
+        setCompletedLessons(
+          saved.completedLessons
+        );
+
+        const percent = progressPercent(
+  saved.completedLessons.length,
+  data.length
+);
+
+setProgress(percent);
+
+setCourseCompleted(
+  data.length > 0 &&
+    saved.completedLessons.length === data.length
+);
+
+        const lastLesson = data.find(
+          (lesson) =>
+            lesson.id ===
+            saved.lastLessonId
+        );
+
+        if (lastLesson) {
+          setSelectedLesson(lastLesson);
+        } else if (data.length > 0) {
+          setSelectedLesson(data[0]);
+        }
+      } else if (data.length > 0) {
         setSelectedLesson(data[0]);
       }
     } catch (e) {
@@ -98,6 +146,50 @@ export default function CourseDetail() {
       Alert.alert(
         "Error",
         "Could not add course."
+      );
+    }
+  };
+
+  const markCompleted = async () => {
+    if (!user || !selectedLesson) return;
+
+    try {
+      await completeLesson(
+        user.uid,
+        id as string,
+        selectedLesson.id
+      );
+
+      const updated = [
+        ...new Set([
+          ...completedLessons,
+          selectedLesson.id,
+        ]),
+      ];
+
+      setCompletedLessons(updated);
+
+      const percent = progressPercent(
+  updated.length,
+  lessons.length
+);
+
+setProgress(percent);
+
+setCourseCompleted(
+  lessons.length > 0 &&
+    updated.length === lessons.length
+);
+      Alert.alert(
+        "Completed",
+        "Lesson marked as completed."
+      );
+    } catch (e) {
+      console.log(e);
+
+      Alert.alert(
+        "Error",
+        "Could not save progress."
       );
     }
   };
@@ -218,6 +310,68 @@ export default function CourseDetail() {
             🎓 Course Lessons
           </Text>
 
+          <Text
+  style={{
+    color: "#10B981",
+    fontSize: 18,
+    fontWeight: "bold",
+    marginTop: 10,
+    marginBottom: 10,
+  }}
+>
+  📈 Progress: {progress}%
+</Text>
+
+<View
+  style={{
+    height: 12,
+    backgroundColor: "#374151",
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 25,
+  }}
+>
+  <View
+    style={{
+      height: "100%",
+      width: `${progress}%`,
+      backgroundColor: "#10B981",
+    }}
+  />
+</View>
+{courseCompleted && (
+  <View
+    style={{
+      backgroundColor: "#065F46",
+      padding: 18,
+      borderRadius: 12,
+      marginBottom: 25,
+    }}
+  >
+    <Text
+      style={{
+        color: "white",
+        fontSize: 22,
+        fontWeight: "bold",
+        textAlign: "center",
+      }}
+    >
+      🎉 Course Completed!
+    </Text>
+
+    <Text
+      style={{
+        color: "#D1FAE5",
+        textAlign: "center",
+        marginTop: 10,
+        fontSize: 16,
+      }}
+    >
+      Congratulations! You have completed every lesson in this course.
+    </Text>
+  </View>
+)}
+
           {selectedLesson && (
             <>
               <View
@@ -261,7 +415,7 @@ export default function CourseDetail() {
                   backgroundColor: "#2563EB",
                   padding: 15,
                   borderRadius: 12,
-                  marginBottom: 30,
+                  marginBottom: 15,
                 }}
               >
                 <Text
@@ -272,6 +426,39 @@ export default function CourseDetail() {
                   }}
                 >
                   📄 Open Lesson PDF
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={markCompleted}
+                disabled={completedLessons.includes(
+                  selectedLesson.id
+                )}
+                style={{
+                  backgroundColor:
+                    completedLessons.includes(
+                      selectedLesson.id
+                    )
+                      ? "#6B7280"
+                      : "#10B981",
+                  padding: 15,
+                  borderRadius: 12,
+                  marginBottom: 25,
+                }}
+              >
+                <Text
+                  style={{
+                    color: "white",
+                    textAlign: "center",
+                    fontWeight: "bold",
+                    fontSize: 16,
+                  }}
+                >
+                  {completedLessons.includes(
+                    selectedLesson.id
+                  )
+                    ? "✅ Lesson Completed"
+                    : "✔ Mark Lesson Complete"}
                 </Text>
               </TouchableOpacity>
 
@@ -311,6 +498,9 @@ export default function CourseDetail() {
               fontSize: 18,
             }}
           >
+            {completedLessons.includes(item.id)
+              ? "✅"
+              : "📘"}{" "}
             Lesson {index + 1}
           </Text>
 

@@ -1,5 +1,6 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import {
+  Alert,
   StyleSheet,
   Text,
   TextInput,
@@ -7,27 +8,40 @@ import {
   View,
 } from "react-native";
 
-import { AuthContext } from "../context/AuthContext";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../lib/firebase";
 
 export default function LoginScreen() {
-  const auth = useContext(AuthContext);
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const loginUser = async () => {
-    if (!auth) return;
+    if (!email || !password) {
+      Alert.alert("Error", "Enter email and password");
+      return;
+    }
 
     try {
-      await auth.login(email, password);
-    } catch (e) {
-      console.log(e);
+      await signInWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password
+      );
+
+      Alert.alert("Success", "Logged in successfully");
+    } catch (error: any) {
+      console.log(error);
+
+      Alert.alert(
+        "Login Failed",
+        error.message
+      );
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>🔐 Login</Text>
 
       <TextInput
         placeholder="Email"
@@ -35,6 +49,7 @@ export default function LoginScreen() {
         value={email}
         onChangeText={setEmail}
         style={styles.input}
+        autoCapitalize="none"
       />
 
       <TextInput
@@ -46,8 +61,13 @@ export default function LoginScreen() {
         style={styles.input}
       />
 
-      <TouchableOpacity style={styles.btn} onPress={loginUser}>
-        <Text style={{ color: "#fff" }}>Login</Text>
+      <TouchableOpacity
+        style={styles.btn}
+        onPress={loginUser}
+      >
+        <Text style={styles.btnText}>
+          Login
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -60,24 +80,33 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 20,
   },
+
   title: {
-    fontSize: 28,
-    color: "#fff",
-    marginBottom: 20,
+    color: "white",
+    fontSize: 30,
     fontWeight: "bold",
+    marginBottom: 30,
+    textAlign: "center",
   },
+
   input: {
     backgroundColor: "#1F2937",
-    marginBottom: 10,
-    padding: 12,
+    color: "white",
+    padding: 15,
     borderRadius: 10,
-    color: "#fff",
+    marginBottom: 15,
   },
+
   btn: {
     backgroundColor: "#2563EB",
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
-    marginTop: 10,
+  },
+
+  btnText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });

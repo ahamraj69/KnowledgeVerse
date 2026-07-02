@@ -99,21 +99,21 @@ export default function TeacherDashboard() {
         title="Students"
         icon="👨‍🎓"
         color="#06B6D4"
-        onPress={() => {}}
+        onPress={() => router.push("/teacher/students")}
       />
 
       <Card
         title="Earnings"
         icon="💰"
         color="#22C55E"
-        onPress={() => {}}
+        onPress={() => router.push("/teacher/earnings")}
       />
 
       <Card
         title="Analytics"
         icon="📊"
         color="#EF4444"
-        onPress={() => {}}
+        onPress={() => router.push("/teacher/analytics")}
       />
     </ScrollView>
   );

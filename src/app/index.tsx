@@ -1,14 +1,12 @@
 import { useRouter } from "expo-router";
-import { signOut } from "firebase/auth";
 import { useEffect } from "react";
 import { ScrollView, Text, TouchableOpacity } from "react-native";
 
 import { useAuth } from "../context/AuthContext";
-import { auth } from "../lib/firebase";
 
 export default function Home() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     if (!user) {
@@ -135,7 +133,7 @@ export default function Home() {
         color="#EF4444"
         onPress={async () => {
           try {
-            await signOut(auth);
+            await logout();
             router.replace("/login");
           } catch (error) {
             console.log(error);

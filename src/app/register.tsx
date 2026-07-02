@@ -1,40 +1,77 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import {
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-import { AuthContext } from "../context/AuthContext";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+
+import { auth, db } from "../lib/firebase";
 
 export default function RegisterScreen() {
-  const auth = useContext(AuthContext);
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"student" | "teacher">("student");
+
+  const [role, setRole] =
+    useState<"student" | "teacher">("student");
 
   const registerUser = async () => {
-    if (!auth) return;
+    if (!email || !password) {
+      Alert.alert(
+        "Error",
+        "Enter email and password"
+      );
+      return;
+    }
 
     try {
-      await auth.register(email, password, role);
-    } catch (e) {
-      console.log(e);
+      const result =
+        await createUserWithEmailAndPassword(
+          auth,
+          email.trim(),
+          password
+        );
+
+      await setDoc(
+        doc(db, "users", result.user.uid),
+        {
+          email: email.trim(),
+          role,
+          createdAt: new Date(),
+        }
+      );
+
+      Alert.alert(
+        "Success",
+        "Account created successfully!"
+      );
+    } catch (error: any) {
+      console.log(error);
+
+      Alert.alert(
+        "Registration Failed",
+        error.message
+      );
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Register</Text>
+      <Text style={styles.title}>
+        📝 Register
+      </Text>
 
       <TextInput
         placeholder="Email"
         placeholderTextColor="#aaa"
         value={email}
         onChangeText={setEmail}
+        autoCapitalize="none"
         style={styles.input}
       />
 
@@ -49,28 +86,43 @@ export default function RegisterScreen() {
 
       <View style={styles.roleRow}>
         <TouchableOpacity
-          onPress={() => setRole("student")}
+          onPress={() =>
+            setRole("student")
+          }
           style={[
             styles.roleBtn,
-            role === "student" && styles.active,
+            role === "student" &&
+              styles.active,
           ]}
         >
-          <Text style={{ color: "#fff" }}>Student</Text>
+          <Text style={styles.roleText}>
+            👨‍🎓 Student
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => setRole("teacher")}
+          onPress={() =>
+            setRole("teacher")
+          }
           style={[
             styles.roleBtn,
-            role === "teacher" && styles.active,
+            role === "teacher" &&
+              styles.active,
           ]}
         >
-          <Text style={{ color: "#fff" }}>Teacher</Text>
+          <Text style={styles.roleText}>
+            👨‍🏫 Teacher
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.btn} onPress={registerUser}>
-        <Text style={{ color: "#fff" }}>Create Account</Text>
+      <TouchableOpacity
+        style={styles.btn}
+        onPress={registerUser}
+      >
+        <Text style={styles.btnText}>
+          Create Account
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -83,39 +135,56 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 20,
   },
+
   title: {
-    fontSize: 28,
-    color: "#fff",
-    marginBottom: 20,
+    color: "white",
+    fontSize: 30,
     fontWeight: "bold",
+    marginBottom: 30,
+    textAlign: "center",
   },
+
   input: {
     backgroundColor: "#1F2937",
-    marginBottom: 10,
-    padding: 12,
+    color: "white",
+    padding: 15,
     borderRadius: 10,
-    color: "#fff",
+    marginBottom: 15,
   },
+
   roleRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginVertical: 10,
+    marginBottom: 20,
   },
+
   roleBtn: {
     flex: 1,
-    padding: 10,
-    marginHorizontal: 5,
     backgroundColor: "#1F2937",
-    alignItems: "center",
+    padding: 15,
+    marginHorizontal: 5,
     borderRadius: 10,
+    alignItems: "center",
   },
+
   active: {
     backgroundColor: "#2563EB",
   },
+
+  roleText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+
   btn: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#10B981",
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
+  },
+
+  btnText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 18,
   },
 });
