@@ -1,105 +1,120 @@
 import { useRouter } from "expo-router";
-import { Text, TouchableOpacity, View } from "react-native";
-
-import { useAuth } from "../../context/AuthContext";
+import { ScrollView, Text, TouchableOpacity } from "react-native";
 
 export default function TeacherDashboard() {
   const router = useRouter();
-  const { user } = useAuth();
 
-  return (
-    <View
+  const Card = ({
+    title,
+    icon,
+    color,
+    onPress,
+  }: {
+    title: string;
+    icon: string;
+    color: string;
+    onPress: () => void;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
       style={{
-        flex: 1,
-        padding: 20,
-        backgroundColor: "#0B1220",
+        backgroundColor: color,
+        padding: 18,
+        borderRadius: 12,
+        marginBottom: 15,
       }}
     >
       <Text
         style={{
           color: "white",
-          fontSize: 26,
+          fontSize: 18,
           fontWeight: "bold",
-          marginBottom: 10,
         }}
       >
-        🎓 Teacher Dashboard
+        {icon} {title}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  return (
+    <ScrollView
+      style={{
+        flex: 1,
+        backgroundColor: "#0B1220",
+      }}
+      contentContainerStyle={{
+        padding: 20,
+        paddingBottom: 40,
+      }}
+    >
+      <Text
+        style={{
+          color: "white",
+          fontSize: 30,
+          fontWeight: "bold",
+          marginBottom: 5,
+        }}
+      >
+        👨‍🏫 Teacher Dashboard
       </Text>
 
       <Text
         style={{
           color: "#9CA3AF",
-          fontSize: 16,
           marginBottom: 30,
         }}
       >
-        Welcome {user?.email}
+        Manage your courses and students
       </Text>
 
-      {/* Create Course */}
-      <TouchableOpacity
+      <Card
+        title="Create Course"
+        icon="➕"
+        color="#10B981"
         onPress={() => router.push("/teacher/create-course")}
-        style={{
-          backgroundColor: "#2563EB",
-          padding: 16,
-          borderRadius: 10,
-          marginBottom: 15,
-        }}
-      >
-        <Text
-          style={{
-            color: "white",
-            fontWeight: "bold",
-            fontSize: 16,
-            textAlign: "center",
-          }}
-        >
-          ➕ Create Course
-        </Text>
-      </TouchableOpacity>
+      />
 
-      {/* My Courses */}
-      <TouchableOpacity
-        onPress={() => router.push("/courses")}
-        style={{
-          backgroundColor: "#1F2937",
-          padding: 16,
-          borderRadius: 10,
-          marginBottom: 15,
-        }}
-      >
-        <Text
-          style={{
-            color: "white",
-            fontWeight: "bold",
-            fontSize: 16,
-            textAlign: "center",
-          }}
-        >
-          📚 View Courses
-        </Text>
-      </TouchableOpacity>
+      <Card
+        title="My Courses"
+        icon="📖"
+        color="#2563EB"
+        onPress={() => router.push("/teacher/my-courses")}
+      />
 
-      {/* AI Tutor */}
-      <TouchableOpacity
-        onPress={() => router.push("/ai")}
-        style={{
-          backgroundColor: "#10B981",
-          padding: 16,
-          borderRadius: 10,
-        }}
-      >
-        <Text
-          style={{
-            color: "white",
-            fontWeight: "bold",
-            fontSize: 16,
-            textAlign: "center",
-          }}
-        >
-          🤖 Open AI Tutor
-        </Text>
-      </TouchableOpacity>
-    </View>
+      <Card
+        title="Upload Video"
+        icon="🎥"
+        color="#7C3AED"
+        onPress={() => {}}
+      />
+
+      <Card
+        title="Upload PDF"
+        icon="📄"
+        color="#F59E0B"
+        onPress={() => {}}
+      />
+
+      <Card
+        title="Students"
+        icon="👨‍🎓"
+        color="#0EA5E9"
+        onPress={() => {}}
+      />
+
+      <Card
+        title="Earnings"
+        icon="💰"
+        color="#22C55E"
+        onPress={() => {}}
+      />
+
+      <Card
+        title="Analytics"
+        icon="📊"
+        color="#EF4444"
+        onPress={() => {}}
+      />
+    </ScrollView>
   );
 }
