@@ -92,7 +92,7 @@ export default function TeacherDashboard() {
         title="Upload PDF"
         icon="📄"
         color="#F59E0B"
-        onPress={() => {}}
+        onPress={() => router.push("/teacher/upload-pdf")}
       />
 
       <Card

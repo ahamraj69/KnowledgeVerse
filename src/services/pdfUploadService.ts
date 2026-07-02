@@ -1,18 +1,35 @@
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import * as DocumentPicker from "expo-document-picker";
+import {
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
+
 import { storage } from "../lib/firebase";
 
-export const uploadPdf = async (
-  pdfUri: string,
-  folder: string
-) => {
-  const response = await fetch(pdfUri);
+export const pickAndUploadPDF = async () => {
+  const result = await DocumentPicker.getDocumentAsync({
+    type: "application/pdf",
+    copyToCacheDirectory: true,
+  });
+
+  if (result.canceled) {
+    return null;
+  }
+
+  const file = result.assets[0];
+
+  const response = await fetch(file.uri);
   const blob = await response.blob();
 
-  const filename = Date.now() + ".pdf";
+  const storageRef = ref(
+    storage,
+    `pdfs/${Date.now()}-${file.name}`
+  );
 
-  const pdfRef = ref(storage, `${folder}/${filename}`);
+  await uploadBytes(storageRef, blob);
 
-  await uploadBytes(pdfRef, blob);
+  const downloadURL = await getDownloadURL(storageRef);
 
-  return await getDownloadURL(pdfRef);
+  return downloadURL;
 };
