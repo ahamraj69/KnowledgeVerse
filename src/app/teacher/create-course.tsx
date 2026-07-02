@@ -1,14 +1,15 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { createCourse } from "../../services/courseService";
+import { uploadCourseImage } from "../../services/imageUploadService";
 
 export default function CreateCourse() {
   const router = useRouter();
@@ -16,26 +17,47 @@ export default function CreateCourse() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const saveCourse = async () => {
+  const handleUploadImage = async () => {
+    try {
+      const url = await uploadCourseImage(Date.now().toString());
+
+      if (url) {
+        setImageUrl(url);
+        Alert.alert("Success", "Thumbnail uploaded successfully.");
+      }
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Error", "Image upload failed.");
+    }
+  };
+
+  const handleCreateCourse = async () => {
     if (!title || !description || !price) {
-      Alert.alert("Error", "Please fill all fields.");
+      Alert.alert("Missing Information", "Please fill all fields.");
       return;
     }
 
     try {
+      setLoading(true);
+
       await createCourse(
         title,
         description,
-        Number(price)
+        Number(price),
+        imageUrl
       );
 
-      Alert.alert("Success", "Course created successfully.");
+      Alert.alert("Success", "Course created successfully!");
 
       router.back();
-    } catch (e) {
-      console.log(e);
-      Alert.alert("Error", "Failed to create course.");
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Error", "Could not create course.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -50,9 +72,9 @@ export default function CreateCourse() {
       <Text
         style={{
           color: "white",
-          fontSize: 24,
+          fontSize: 26,
           fontWeight: "bold",
-          marginBottom: 20,
+          marginBottom: 25,
         }}
       >
         ➕ Create Course
@@ -60,28 +82,28 @@ export default function CreateCourse() {
 
       <TextInput
         placeholder="Course Title"
-        placeholderTextColor="#888"
+        placeholderTextColor="#9CA3AF"
         value={title}
         onChangeText={setTitle}
         style={{
           backgroundColor: "#1F2937",
           color: "white",
-          padding: 14,
+          padding: 15,
           borderRadius: 10,
           marginBottom: 15,
         }}
       />
 
       <TextInput
-        placeholder="Description"
-        placeholderTextColor="#888"
+        placeholder="Course Description"
+        placeholderTextColor="#9CA3AF"
+        multiline
         value={description}
         onChangeText={setDescription}
-        multiline
         style={{
           backgroundColor: "#1F2937",
           color: "white",
-          padding: 14,
+          padding: 15,
           borderRadius: 10,
           height: 120,
           textAlignVertical: "top",
@@ -91,36 +113,59 @@ export default function CreateCourse() {
 
       <TextInput
         placeholder="Price (₹)"
-        placeholderTextColor="#888"
+        placeholderTextColor="#9CA3AF"
         keyboardType="numeric"
         value={price}
         onChangeText={setPrice}
         style={{
           backgroundColor: "#1F2937",
           color: "white",
-          padding: 14,
+          padding: 15,
           borderRadius: 10,
           marginBottom: 20,
         }}
       />
 
       <TouchableOpacity
-        onPress={saveCourse}
+        onPress={handleUploadImage}
         style={{
           backgroundColor: "#2563EB",
-          padding: 16,
+          padding: 15,
           borderRadius: 10,
-          alignItems: "center",
+          marginBottom: 20,
         }}
       >
         <Text
           style={{
             color: "white",
+            textAlign: "center",
             fontWeight: "bold",
-            fontSize: 16,
           }}
         >
-          Create Course
+          {imageUrl
+            ? "✅ Thumbnail Uploaded"
+            : "📷 Upload Thumbnail"}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        disabled={loading}
+        onPress={handleCreateCourse}
+        style={{
+          backgroundColor: loading ? "#6B7280" : "#10B981",
+          padding: 16,
+          borderRadius: 10,
+        }}
+      >
+        <Text
+          style={{
+            color: "white",
+            textAlign: "center",
+            fontSize: 16,
+            fontWeight: "bold",
+          }}
+        >
+          {loading ? "Creating Course..." : "🚀 Create Course"}
         </Text>
       </TouchableOpacity>
     </View>
