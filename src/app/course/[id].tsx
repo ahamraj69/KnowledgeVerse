@@ -9,6 +9,7 @@ import {
 
 import VideoPlayer from "../../components/VideoPlayer";
 import { hasAccess } from "../../services/accessService";
+import { sendNotification } from "../../services/notificationService";
 import { payForCourse } from "../../services/razorpayService";
 import { addToWishlist } from "../../services/wishlistService";
 
@@ -41,6 +42,11 @@ export default function CourseDetail() {
         "teacher_123"
       );
 
+      await sendNotification(
+        "🎉 Course Purchased",
+        "Your course has been unlocked successfully."
+      );
+
       Alert.alert(
         "Success",
         "Course Purchased Successfully!"
@@ -49,6 +55,7 @@ export default function CourseDetail() {
       setAccess(true);
     } catch (error) {
       console.log(error);
+
       Alert.alert(
         "Payment Failed",
         "Unable to complete payment."
