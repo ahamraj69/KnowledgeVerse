@@ -1,26 +1,55 @@
-import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
-import { auth, db } from "../../lib/firebase";
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "../lib/firebase";
 
-// 👤 Create user profile in Firestore
-export const createUserProfile = async (role: "student" | "teacher") => {
-  const user = auth.currentUser;
-  if (!user) return;
+export type UserRole = "student" | "teacher" | "admin";
 
-  await setDoc(doc(db, "users", user.uid), {
-    uid: user.uid,
-    email: user.email,
+export interface UserProfile {
+  uid: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  photoURL?: string;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export const createUserProfile = async (
+  uid: string,
+  name: string,
+  email: string,
+  role: UserRole = "student"
+) => {
+  await setDoc(doc(db, "users", uid), {
+    uid,
+    name,
+    email,
     role,
-    plan: "free",
-    createdAt: Timestamp.now(),
+    photoURL: "",
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 };
 
-// 📥 Get user profile
-export const getUserProfile = async () => {
-  const user = auth.currentUser;
-  if (!user) return null;
+export const getUserProfile = async (uid: string) => {
+  const snapshot = await getDoc(doc(db, "users", uid));
 
-  const snap = await getDoc(doc(db, "users", user.uid));
+  if (!snapshot.exists()) return null;
 
-  return snap.exists() ? snap.data() : null;
+  return snapshot.data() as UserProfile;
+};
+
+export const updateUserProfile = async (
+  uid: string,
+  data: Partial<UserProfile>
+) => {
+  await updateDoc(doc(db, "users", uid), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  });
 };

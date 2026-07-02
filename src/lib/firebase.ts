@@ -14,29 +14,31 @@ import { getStorage } from "firebase/storage";
  * Firebase Config
  */
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyAr38ZS9tnCifA2stYihZ6uO5Y4v40BAAw",
+  authDomain: "knowledgeverse-123.firebaseapp.com",
+  projectId: "knowledgeverse-123",
+  storageBucket: "knowledgeverse-123.firebasestorage.app",
+  messagingSenderId: "833231039240",
+  appId: "1:833231039240:web:43a66c0f5c997b6ff79abd",
 };
 
 const app = initializeApp(firebaseConfig);
 
 /**
- * 🔐 FIX: Persistent Auth (NO MORE WARNING)
+ * Persistent Authentication
  */
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
 
 /**
- * 🗄 Firestore DB
+ * Firestore Database
  */
 export const db = getFirestore(app);
 
 /**
- * 📦 Storage
+ * Firebase Storage
  */
 export const storage = getStorage(app);
+
+export default app;
