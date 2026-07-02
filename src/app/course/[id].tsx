@@ -2,16 +2,28 @@ import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  FlatList,
+  Linking,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 
 import VideoPlayer from "../../components/VideoPlayer";
+
 import { hasAccess } from "../../services/accessService";
-import { sendNotification } from "../../services/notificationService";
+import { getLessons } from "../../services/lessonService";
 import { payForCourse } from "../../services/razorpayService";
 import { addToWishlist } from "../../services/wishlistService";
+
+interface Lesson {
+  id: string;
+  courseId: string;
+  title: string;
+  description: string;
+  videoUrl: string;
+  pdfUrl: string;
+}
 
 export default function CourseDetail() {
   const { id } = useLocalSearchParams();
@@ -19,16 +31,30 @@ export default function CourseDetail() {
   const [access, setAccess] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+
+  const [selectedLesson, setSelectedLesson] =
+    useState<Lesson | null>(null);
+
   useEffect(() => {
-    checkAccess();
+    loadCourse();
   }, []);
 
-  const checkAccess = async () => {
+  const loadCourse = async () => {
     try {
-      const result = await hasAccess(id as string);
-      setAccess(result);
-    } catch (error) {
-      console.log(error);
+      const purchased = await hasAccess(id as string);
+
+      setAccess(purchased);
+
+      const data = await getLessons(id as string);
+
+      setLessons(data);
+
+      if (data.length > 0) {
+        setSelectedLesson(data[0]);
+      }
+    } catch (e) {
+      console.log(e);
     } finally {
       setLoading(false);
     }
@@ -42,19 +68,14 @@ export default function CourseDetail() {
         "teacher_123"
       );
 
-      await sendNotification(
-        "🎉 Course Purchased",
-        "Your course has been unlocked successfully."
-      );
-
       Alert.alert(
         "Success",
         "Course Purchased Successfully!"
       );
 
       setAccess(true);
-    } catch (error) {
-      console.log(error);
+    } catch (e) {
+      console.log(e);
 
       Alert.alert(
         "Payment Failed",
@@ -71,8 +92,8 @@ export default function CourseDetail() {
         "Wishlist",
         "Course added successfully ❤️"
       );
-    } catch (error) {
-      console.log(error);
+    } catch (e) {
+      console.log(e);
 
       Alert.alert(
         "Error",
@@ -91,115 +112,246 @@ export default function CourseDetail() {
           backgroundColor: "#0B1220",
         }}
       >
-        <Text style={{ color: "white" }}>
-          Loading...
+        <Text
+          style={{
+            color: "white",
+            fontSize: 18,
+          }}
+        >
+          Loading Course...
         </Text>
       </View>
     );
   }
 
-  return (
-    <View
+  if (!access) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#0B1220",
+          padding: 20,
+          justifyContent: "center",
+        }}
+      >
+        <Text
+          style={{
+            color: "white",
+            fontSize: 28,
+            fontWeight: "bold",
+          }}
+        >
+          📚 Course Details
+        </Text>
+
+        <Text
+          style={{
+            color: "#9CA3AF",
+            marginTop: 15,
+            marginBottom: 30,
+          }}
+        >
+          Purchase this course to unlock all lessons.
+        </Text>
+
+        <TouchableOpacity
+          onPress={wishlist}
+          style={{
+            backgroundColor: "#DC2626",
+            padding: 15,
+            borderRadius: 12,
+            marginBottom: 15,
+          }}
+        >
+          <Text
+            style={{
+              color: "white",
+              textAlign: "center",
+              fontWeight: "bold",
+            }}
+          >
+            ❤️ Add to Wishlist
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={buyCourse}
+          style={{
+            backgroundColor: "#2563EB",
+            padding: 15,
+            borderRadius: 12,
+          }}
+        >
+          <Text
+            style={{
+              color: "white",
+              textAlign: "center",
+              fontWeight: "bold",
+            }}
+          >
+            💳 Buy Course ₹499
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+    return (
+    <FlatList
       style={{
         flex: 1,
         backgroundColor: "#0B1220",
+      }}
+      contentContainerStyle={{
         padding: 20,
       }}
-    >
-      <Text
-        style={{
-          color: "white",
-          fontSize: 28,
-          fontWeight: "bold",
-        }}
-      >
-        📚 Course Details
-      </Text>
-
-      <Text
-        style={{
-          color: "#9CA3AF",
-          marginTop: 12,
-          marginBottom: 30,
-        }}
-      >
-        Learn with AI-powered lessons and practical projects.
-      </Text>
-
-      {!access && (
+      data={lessons}
+      keyExtractor={(item) => item.id}
+      ListHeaderComponent={() => (
         <>
-          <TouchableOpacity
-            onPress={wishlist}
+          <Text
             style={{
-              backgroundColor: "#DC2626",
-              padding: 15,
-              borderRadius: 12,
-              marginBottom: 15,
+              color: "white",
+              fontSize: 28,
+              fontWeight: "bold",
             }}
           >
-            <Text
-              style={{
-                color: "white",
-                textAlign: "center",
-                fontWeight: "bold",
-              }}
-            >
-              ❤️ Add to Wishlist
-            </Text>
-          </TouchableOpacity>
+            🎓 Course Lessons
+          </Text>
 
-          <TouchableOpacity
-            onPress={buyCourse}
-            style={{
-              backgroundColor: "#2563EB",
-              padding: 15,
-              borderRadius: 12,
-            }}
-          >
-            <Text
-              style={{
-                color: "white",
-                textAlign: "center",
-                fontWeight: "bold",
-              }}
-            >
-              💳 Buy Course ₹499
-            </Text>
-          </TouchableOpacity>
+          {selectedLesson && (
+            <>
+              <View
+                style={{
+                  marginTop: 20,
+                  marginBottom: 20,
+                }}
+              >
+                <VideoPlayer
+                  uri={selectedLesson.videoUrl}
+                />
+              </View>
+
+              <Text
+                style={{
+                  color: "white",
+                  fontSize: 22,
+                  fontWeight: "bold",
+                }}
+              >
+                {selectedLesson.title}
+              </Text>
+
+              <Text
+                style={{
+                  color: "#9CA3AF",
+                  marginTop: 10,
+                  marginBottom: 20,
+                }}
+              >
+                {selectedLesson.description}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() =>
+                  Linking.openURL(
+                    selectedLesson.pdfUrl
+                  )
+                }
+                style={{
+                  backgroundColor: "#2563EB",
+                  padding: 15,
+                  borderRadius: 12,
+                  marginBottom: 30,
+                }}
+              >
+                <Text
+                  style={{
+                    color: "white",
+                    textAlign: "center",
+                    fontWeight: "bold",
+                  }}
+                >
+                  📄 Open Lesson PDF
+                </Text>
+              </TouchableOpacity>
+
+              <Text
+                style={{
+                  color: "white",
+                  fontSize: 22,
+                  fontWeight: "bold",
+                  marginBottom: 15,
+                }}
+              >
+                Lessons
+              </Text>
+            </>
+          )}
         </>
       )}
-
-      {access && (
-        <View
+      renderItem={({ item, index }) => (
+        <TouchableOpacity
+          onPress={() =>
+            setSelectedLesson(item)
+          }
           style={{
-            marginTop: 25,
+            backgroundColor:
+              selectedLesson?.id === item.id
+                ? "#2563EB"
+                : "#1F2937",
+            padding: 18,
+            borderRadius: 12,
+            marginBottom: 12,
           }}
         >
-          <VideoPlayer
-            uri="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-          />
+          <Text
+            style={{
+              color: "white",
+              fontWeight: "bold",
+              fontSize: 18,
+            }}
+          >
+            Lesson {index + 1}
+          </Text>
 
           <Text
             style={{
-              color: "#10B981",
-              fontSize: 18,
-              fontWeight: "bold",
-              marginTop: 20,
+              color: "white",
+              marginTop: 5,
+              fontSize: 16,
             }}
           >
-            🎉 Course Unlocked
+            {item.title}
           </Text>
 
+          <Text
+            style={{
+              color: "#D1D5DB",
+              marginTop: 8,
+            }}
+            numberOfLines={2}
+          >
+            {item.description}
+          </Text>
+        </TouchableOpacity>
+      )}
+      ListEmptyComponent={() => (
+        <View
+          style={{
+            marginTop: 100,
+            alignItems: "center",
+          }}
+        >
           <Text
             style={{
               color: "#9CA3AF",
-              marginTop: 10,
+              fontSize: 18,
             }}
           >
-            Enjoy your lessons and continue learning.
+            No lessons available.
           </Text>
         </View>
       )}
-    </View>
+    />
   );
 }

@@ -1,3 +1,4 @@
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
@@ -10,15 +11,24 @@ import {
 import { createLesson } from "../../services/lessonService";
 
 export default function AddLesson() {
-  const [courseId, setCourseId] = useState("");
+  const router = useRouter();
+
+  const { courseId } = useLocalSearchParams<{
+    courseId: string;
+  }>();
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [pdfUrl, setPdfUrl] = useState("");
 
   const saveLesson = async () => {
+    if (!courseId) {
+      Alert.alert("Error", "Course not selected.");
+      return;
+    }
+
     if (
-      !courseId ||
       !title ||
       !description ||
       !videoUrl ||
@@ -26,14 +36,14 @@ export default function AddLesson() {
     ) {
       Alert.alert(
         "Missing Information",
-        "Please fill all fields."
+        "Please complete all fields."
       );
       return;
     }
 
     try {
       await createLesson({
-        courseId,
+        courseId: String(courseId),
         title,
         description,
         videoUrl,
@@ -42,20 +52,20 @@ export default function AddLesson() {
 
       Alert.alert(
         "Success",
-        "Lesson created successfully!"
+        "Lesson created successfully!",
+        [
+          {
+            text: "OK",
+            onPress: () => router.back(),
+          },
+        ]
       );
-
-      setCourseId("");
-      setTitle("");
-      setDescription("");
-      setVideoUrl("");
-      setPdfUrl("");
     } catch (error) {
       console.log(error);
 
       Alert.alert(
         "Error",
-        "Unable to create lesson."
+        "Failed to create lesson."
       );
     }
   };
@@ -75,25 +85,30 @@ export default function AddLesson() {
           color: "white",
           fontSize: 28,
           fontWeight: "bold",
-          marginBottom: 30,
+          marginBottom: 10,
         }}
       >
         ➕ Add Lesson
       </Text>
 
-      <TextInput
-        placeholder="Course ID"
-        placeholderTextColor="#9CA3AF"
-        value={courseId}
-        onChangeText={setCourseId}
+      <Text
         style={{
-          backgroundColor: "#1F2937",
-          color: "white",
-          padding: 15,
-          borderRadius: 12,
-          marginBottom: 15,
+          color: "#9CA3AF",
+          marginBottom: 25,
         }}
-      />
+      >
+        Course ID:
+      </Text>
+
+      <Text
+        style={{
+          color: "#10B981",
+          marginBottom: 25,
+          fontWeight: "bold",
+        }}
+      >
+        {courseId}
+      </Text>
 
       <TextInput
         placeholder="Lesson Title"
