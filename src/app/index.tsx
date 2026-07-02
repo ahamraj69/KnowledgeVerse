@@ -1,77 +1,128 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
-import { useAuth } from "../context/AuthContext";
-import { getUserRole } from "../services/userService";
+import { ScrollView, Text, TouchableOpacity } from "react-native";
 
 export default function Home() {
   const router = useRouter();
-  const { user } = useAuth();
-  const [role, setRole] = useState<string>("");
 
-  useEffect(() => {
-    if (user) {
-      getUserRole(user.uid).then(setRole);
-    }
-  }, [user]);
+  const Card = ({
+    title,
+    icon,
+    color,
+    onPress,
+  }: {
+    title: string;
+    icon: string;
+    color: string;
+    onPress: () => void;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        backgroundColor: color,
+        padding: 18,
+        borderRadius: 14,
+        marginBottom: 15,
+      }}
+    >
+      <Text
+        style={{
+          color: "white",
+          fontSize: 18,
+          fontWeight: "bold",
+        }}
+      >
+        {icon} {title}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <View
+    <ScrollView
       style={{
         flex: 1,
         backgroundColor: "#0B1220",
-        justifyContent: "center",
+      }}
+      contentContainerStyle={{
         padding: 20,
+        paddingBottom: 40,
       }}
     >
-      <Text style={{ color: "white", fontSize: 26, fontWeight: "bold" }}>
+      <Text
+        style={{
+          color: "white",
+          fontSize: 30,
+          fontWeight: "bold",
+        }}
+      >
         🚀 KnowledgeVerse
       </Text>
 
-      <Text style={{ color: "#9CA3AF", marginTop: 10 }}>
-        AI + Learning Marketplace Platform
+      <Text
+        style={{
+          color: "#9CA3AF",
+          marginTop: 6,
+          marginBottom: 30,
+          fontSize: 16,
+        }}
+      >
+        AI Learning Marketplace
       </Text>
 
-      {/* AI BUTTON */}
-      <TouchableOpacity
+      <Card
+        title="AI Tutor"
+        icon="🤖"
+        color="#2563EB"
         onPress={() => router.push("/ai")}
-        style={{
-          marginTop: 30,
-          backgroundColor: "#2563EB",
-          padding: 15,
-          borderRadius: 12,
-        }}
-      >
-        <Text style={{ color: "white" }}>🤖 Open AI Tutor</Text>
-      </TouchableOpacity>
+      />
 
-      {/* COURSES */}
-      <TouchableOpacity
+      <Card
+        title="Browse Courses"
+        icon="📚"
+        color="#1F2937"
         onPress={() => router.push("/courses")}
-        style={{
-          marginTop: 15,
-          backgroundColor: "#1F2937",
-          padding: 15,
-          borderRadius: 12,
-        }}
-      >
-        <Text style={{ color: "white" }}>📚 Browse Courses</Text>
-      </TouchableOpacity>
+      />
 
-      {/* TEACHER DASHBOARD */}
-      {role === "teacher" && (
-        <TouchableOpacity
-          onPress={() => router.push("/teacher/dashboard")}
-          style={{
-            marginTop: 15,
-            backgroundColor: "#10B981",
-            padding: 15,
-            borderRadius: 12,
-          }}
-        >
-          <Text style={{ color: "white" }}>🏫 Teacher Dashboard</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+      <Card
+        title="Teacher Dashboard"
+        icon="👨‍🏫"
+        color="#10B981"
+        onPress={() => router.push("/teacher/dashboard")}
+      />
+
+      <Card
+        title="My Profile"
+        icon="👤"
+        color="#7C3AED"
+        onPress={() => router.push("/profile")}
+      />
+
+      <Card
+        title="Wishlist"
+        icon="❤️"
+        color="#DC2626"
+        onPress={() => router.push("/wishlist")}
+      />
+
+      <Card
+        title="Notifications"
+        icon="🔔"
+        color="#F59E0B"
+        onPress={() => router.push("/notifications")}
+      />
+
+      <Card
+        title="Settings"
+        icon="⚙️"
+        color="#374151"
+        onPress={() => router.push("/settings")}
+      />
+
+      <Card
+        title="Logout"
+        icon="🚪"
+        color="#EF4444"
+        onPress={() => router.push("/login")}
+      />
+    </ScrollView>
   );
 }
