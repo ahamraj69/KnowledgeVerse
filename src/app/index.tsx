@@ -1,8 +1,20 @@
 import { useRouter } from "expo-router";
+import { signOut } from "firebase/auth";
+import { useEffect } from "react";
 import { ScrollView, Text, TouchableOpacity } from "react-native";
+
+import { useAuth } from "../context/AuthContext";
+import { auth } from "../lib/firebase";
 
 export default function Home() {
   const router = useRouter();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) {
+      router.replace("/login");
+    }
+  }, [user]);
 
   const Card = ({
     title,
@@ -60,7 +72,7 @@ export default function Home() {
       <Text
         style={{
           color: "#9CA3AF",
-          marginTop: 6,
+          marginTop: 5,
           marginBottom: 30,
           fontSize: 16,
         }}
@@ -121,7 +133,14 @@ export default function Home() {
         title="Logout"
         icon="🚪"
         color="#EF4444"
-        onPress={() => router.push("/login")}
+        onPress={async () => {
+          try {
+            await signOut(auth);
+            router.replace("/login");
+          } catch (error) {
+            console.log(error);
+          }
+        }}
       />
     </ScrollView>
   );
