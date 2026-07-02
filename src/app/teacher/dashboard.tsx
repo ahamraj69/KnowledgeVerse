@@ -52,7 +52,6 @@ export default function TeacherDashboard() {
           color: "white",
           fontSize: 30,
           fontWeight: "bold",
-          marginBottom: 5,
         }}
       >
         👨‍🏫 Teacher Dashboard
@@ -61,10 +60,11 @@ export default function TeacherDashboard() {
       <Text
         style={{
           color: "#9CA3AF",
+          marginTop: 5,
           marginBottom: 30,
         }}
       >
-        Manage your courses and students
+        Manage your courses and teaching resources
       </Text>
 
       <Card
@@ -85,7 +85,7 @@ export default function TeacherDashboard() {
         title="Upload Video"
         icon="🎥"
         color="#7C3AED"
-        onPress={() => {}}
+        onPress={() => router.push("/teacher/upload-video")}
       />
 
       <Card
@@ -98,7 +98,7 @@ export default function TeacherDashboard() {
       <Card
         title="Students"
         icon="👨‍🎓"
-        color="#0EA5E9"
+        color="#06B6D4"
         onPress={() => {}}
       />
 
