@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
@@ -22,13 +23,15 @@ export default function LoginScreen() {
     }
 
     try {
+      // Step 2: Authenticate user session
       await signInWithEmailAndPassword(
         auth,
         email.trim(),
         password
       );
 
-      Alert.alert("Success", "Logged in successfully");
+      // Step 2: Redirect to home route directly instead of showing a success alert
+      router.replace("/");
     } catch (error: any) {
       console.log(error);
 
@@ -50,6 +53,7 @@ export default function LoginScreen() {
         onChangeText={setEmail}
         style={styles.input}
         autoCapitalize="none"
+        keyboardType="email-address"
       />
 
       <TextInput
@@ -69,6 +73,22 @@ export default function LoginScreen() {
           Login
         </Text>
       </TouchableOpacity>
+
+      {/* Step 3: Add a Sign Up button with inline styles directly below the login button */}
+      <TouchableOpacity
+        onPress={() => router.push("/signup")}
+        style={{ marginTop: 20 }}
+      >
+        <Text
+          style={{
+            color: "#60A5FA",
+            textAlign: "center",
+            fontSize: 16,
+          }}
+        >
+          Don't have an account? Sign Up
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -80,7 +100,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 20,
   },
-
   title: {
     color: "white",
     fontSize: 30,
@@ -88,7 +107,6 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     textAlign: "center",
   },
-
   input: {
     backgroundColor: "#1F2937",
     color: "white",
@@ -96,14 +114,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
   },
-
   btn: {
     backgroundColor: "#2563EB",
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
   },
-
   btnText: {
     color: "white",
     fontSize: 18,

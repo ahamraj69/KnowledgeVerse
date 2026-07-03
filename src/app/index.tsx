@@ -1,18 +1,43 @@
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import { useEffect } from "react";
-import { ScrollView, Text, TouchableOpacity } from "react-native";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
+import ContinueLearningCard from "../components/ContinueLearningCard";
+import ContinueLearningEmpty from "../components/ContinueLearningEmpty";
 import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
-  const router = useRouter();
-  const { user, logout } = useAuth();
+  // Step 1: Destructure user AND loading from auth context
+  const { user, loading, logout } = useAuth();
 
+  // Temporary mock state placeholder for development
+  const continueLearning = null;
+
+  // Step 1: Handle authentication redirection carefully alongside the loading state
   useEffect(() => {
+    if (loading) return;
+
     if (!user) {
       router.replace("/login");
     }
-  }, [user]);
+  }, [user, loading]);
+
+  const continueCourse = (courseId: string) => {
+    router.push(`/course/${courseId}`);
+  };
+
+  const browseCourses = () => {
+    router.push("/courses");
+  };
+
+  // Step 1: Prevent component content from flashing before context resolves
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#0B1220", justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    );
+  }
 
   const Card = ({
     title,
@@ -77,6 +102,18 @@ export default function Home() {
       >
         AI Learning Marketplace
       </Text>
+
+      {continueLearning ? (
+        <ContinueLearningCard
+          courseId={continueLearning.courseId}
+          courseTitle={continueLearning.courseTitle}
+          lessonTitle={continueLearning.lessonTitle}
+          progress={continueLearning.progress}
+          onContinue={continueCourse}
+        />
+      ) : (
+        <ContinueLearningEmpty onBrowseCourses={browseCourses} />
+      )}
 
       <Card
         title="AI Tutor"

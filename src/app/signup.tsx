@@ -1,6 +1,7 @@
+import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
-import { Alert, Button, TextInput, View } from "react-native";
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { auth } from "../lib/firebase";
 import { createUserProfile } from "../services/userService";
@@ -19,18 +20,19 @@ export default function Signup() {
     try {
       const credential = await createUserWithEmailAndPassword(
         auth,
-        email,
+        email.trim(),
         password
       );
 
       await createUserProfile(
         credential.user.uid,
-        name,
-        credential.user.email ?? email,
+        name.trim(),
+        credential.user.email ?? email.trim(),
         "student"
       );
 
-      Alert.alert("Success", "Account created successfully!");
+      // Step 4: Instantly redirect to home dashboard instead of triggering a success Alert
+      router.replace("/");
     } catch (e: any) {
       console.log("Signup error:", e);
       Alert.alert("Signup Failed", e.message ?? "Something went wrong.");
@@ -38,56 +40,90 @@ export default function Signup() {
   };
 
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        padding: 20,
-      }}
-    >
+    <View style={styles.container}>
+      <Text style={styles.title}>📝 Sign Up</Text>
+
       <TextInput
         placeholder="Full Name"
+        placeholderTextColor="#aaa"
         value={name}
         onChangeText={setName}
-        style={{
-          borderWidth: 1,
-          borderColor: "#ccc",
-          padding: 12,
-          marginBottom: 12,
-          borderRadius: 8,
-        }}
+        style={styles.input}
       />
 
       <TextInput
         placeholder="Email"
+        placeholderTextColor="#aaa"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
-        style={{
-          borderWidth: 1,
-          borderColor: "#ccc",
-          padding: 12,
-          marginBottom: 12,
-          borderRadius: 8,
-        }}
+        style={styles.input}
       />
 
       <TextInput
         placeholder="Password"
+        placeholderTextColor="#aaa"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        style={{
-          borderWidth: 1,
-          borderColor: "#ccc",
-          padding: 12,
-          marginBottom: 20,
-          borderRadius: 8,
-        }}
+        style={styles.input}
       />
 
-      <Button title="Sign Up" onPress={signup} />
+      <TouchableOpacity style={styles.btn} onPress={signup}>
+        <Text style={styles.btnText}>Sign Up</Text>
+      </TouchableOpacity>
+
+      {/* Step 5: Login toggle trigger using your exact inline styling layout definitions */}
+      <TouchableOpacity
+        onPress={() => router.back()}
+        style={{ marginTop: 20 }}
+      >
+        <Text
+          style={{
+            textAlign: "center",
+            color: "#2563EB",
+            fontSize: 16,
+          }}
+        >
+          Already have an account? Login
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#0B1220",
+    justifyContent: "center",
+    padding: 20,
+  },
+  title: {
+    color: "white",
+    fontSize: 30,
+    fontWeight: "bold",
+    marginBottom: 30,
+    textAlign: "center",
+  },
+  input: {
+    backgroundColor: "#1F2937",
+    color: "white",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  btn: {
+    backgroundColor: "#2563EB",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  btnText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+});
