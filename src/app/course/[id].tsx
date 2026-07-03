@@ -19,6 +19,7 @@ import { useAuth } from "../../context/AuthContext";
 
 import { hasAccess } from "../../services/accessService";
 import {
+  getContinueLearning,
   saveContinueLearning,
 } from "../../services/continueLearningService";
 import {
@@ -49,10 +50,10 @@ export default function CourseDetail() {
   const [courseCompleted, setCourseCompleted] = useState(false);
 
   useEffect(() => {
-  if (!id) return;
+    if (!id) return;
 
-  loadCourse();
-}, [id, user]);
+    loadCourse();
+  }, [id, user]);
 
   const loadCourse = async () => {
     try {
@@ -63,7 +64,26 @@ export default function CourseDetail() {
       setLessons(data);
 
       if (data.length > 0) {
-        setSelectedLesson(data[0]);
+        let lessonToOpen = data[0];
+
+        if (user) {
+          const recent = await getContinueLearning(
+            user.uid,
+            id as string
+          );
+
+          if (recent) {
+            const found = data.find(
+              (lesson) => lesson.id === recent.lessonId
+            );
+
+            if (found) {
+              lessonToOpen = found;
+            }
+          }
+        }
+
+        setSelectedLesson(lessonToOpen);
       }
 
       if (user) {
@@ -203,12 +223,12 @@ export default function CourseDetail() {
       )}
 
       <LessonList
-  lessons={lessons}
-  selectedLesson={selectedLesson}
-  completedLessons={completedLessons}
-  onSelectLesson={openLesson}
-  onCompleteLesson={markCompleted}
-/>
+        lessons={lessons}
+        selectedLesson={selectedLesson}
+        completedLessons={completedLessons}
+        onSelectLesson={openLesson}
+        onCompleteLesson={markCompleted}
+      />
     </ScrollView>
   );
 }
