@@ -1,94 +1,59 @@
 import { Text, View } from "react-native";
 
 interface Props {
-  progress: number;
-  courseCompleted: boolean;
+  title: string;
+  value: number;
+  subtitle?: string;
+  color?: string;
 }
 
 export default function ProgressCard({
-  progress,
-  courseCompleted,
+  title,
+  value,
+  subtitle,
+  color = "#2563EB",
 }: Props) {
   return (
     <View
       style={{
-        backgroundColor: "#111827",
-        borderRadius: 14,
+        backgroundColor: "#1F2937",
         padding: 18,
-        marginBottom: 25,
+        borderRadius: 16,
+        marginBottom: 12,
       }}
     >
-      <Text
-        style={{
-          color: "white",
-          fontSize: 20,
-          fontWeight: "bold",
-        }}
-      >
-        📈 Course Progress
-      </Text>
-
+      {/* Title */}
       <Text
         style={{
           color: "#9CA3AF",
-          marginTop: 10,
-          marginBottom: 15,
-          fontSize: 16,
+          fontSize: 14,
         }}
       >
-        {progress}% Completed
+        {title}
       </Text>
 
-      {/* Progress Bar Background */}
-      <View
+      {/* Value */}
+      <Text
         style={{
-          height: 12,
-          backgroundColor: "#374151",
-          borderRadius: 10,
-          overflow: "hidden",
+          color: color,
+          fontSize: 28,
+          fontWeight: "bold",
+          marginTop: 6,
         }}
       >
-        {/* Progress Fill */}
-        <View
-          style={{
-            width: `${progress}%`,
-            height: "100%",
-            backgroundColor: "#22C55E",
-          }}
-        />
-      </View>
+        {value}
+      </Text>
 
-      {courseCompleted && (
-        <View
+      {/* Subtitle */}
+      {subtitle && (
+        <Text
           style={{
-            marginTop: 20,
-            padding: 15,
-            backgroundColor: "#065F46",
-            borderRadius: 12,
+            color: "#6B7280",
+            marginTop: 4,
           }}
         >
-          <Text
-            style={{
-              color: "white",
-              textAlign: "center",
-              fontWeight: "bold",
-              fontSize: 18,
-            }}
-          >
-            🎉 Congratulations!
-          </Text>
-
-          <Text
-            style={{
-              color: "#D1FAE5",
-              textAlign: "center",
-              marginTop: 8,
-              fontSize: 15,
-            }}
-          >
-            You have successfully completed this course.
-          </Text>
-        </View>
+          {subtitle}
+        </Text>
       )}
     </View>
   );

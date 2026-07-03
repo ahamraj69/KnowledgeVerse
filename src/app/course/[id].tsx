@@ -1,23 +1,32 @@
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
+import BookmarkButton from "../../components/BookmarkButton";
 import CourseHeader from "../../components/CourseHeader";
 import CoursePlayer from "../../components/CoursePlayer";
+import DownloadButton from "../../components/DownloadButton";
 import LessonList, {
   Lesson,
 } from "../../components/LessonList";
 import ProgressCard from "../../components/ProgressCard";
 import PurchaseCard from "../../components/PurchaseCard";
+import QuizCard from "../../components/QuizCard";
 
 import { useAuth } from "../../context/AuthContext";
+import { useLoading } from "../../context/LoadingContext";
 
 import { hasAccess } from "../../services/accessService";
+import {
+  generateCertificate,
+  getCertificate,
+} from "../../services/certificateService";
 import {
   getContinueLearning,
   saveContinueLearning,
@@ -40,19 +49,23 @@ import {
   addToWishlist,
 } from "../../services/wishlistService";
 
+import { Colors } from "../../theme/colors"; // ✅ Added central color system
+import { Theme } from "../../theme/theme"; // ✅ Added structural style system
+
 export default function CourseDetail() {
   const { id } = useLocalSearchParams();
   const { user } = useAuth();
+  
+  const { setLoading } = useLoading();
 
   const [access, setAccess] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const [courseCompleted, setCourseCompleted] = useState(false);
 
-  // ✅ FIX: Optimized dependency loop prevention
+  // ✅ Optimised dependency loop prevention
   useEffect(() => {
     if (!id) return;
 
@@ -61,6 +74,8 @@ export default function CourseDetail() {
 
   const loadCourse = async () => {
     try {
+      setLoading(true);
+      
       if (user) {
         await saveRecentlyViewed(user.uid, id as string);
       }
@@ -71,9 +86,9 @@ export default function CourseDetail() {
       const data = await getLessons(id as string);
       setLessons(data);
 
-      // ✅ FIX: Strict length verification for safer evaluation
+      // ✅ Strict length verification for safer evaluation
       if (data.length > 0) {
-        let lessonToOpen: Lesson | null = data.length ? data[0] : null;
+        let lessonToOpen: Lesson | null = data.length ? data : null;
 
         if (user) {
           const recent = await getContinueLearning(user.uid, id as string);
@@ -86,7 +101,7 @@ export default function CourseDetail() {
             if (found) {
               lessonToOpen = found;
             } else {
-              lessonToOpen = data.length ? data[0] : null;
+              lessonToOpen = data.length ? data : null;
             }
           }
         }
@@ -134,14 +149,36 @@ export default function CourseDetail() {
     }
   };
 
+  const openNotes = () => {
+    if (!selectedLesson) return;
+
+    router.push({
+      pathname: "/notes/[lessonId]",
+      params: {
+        lessonId: selectedLesson.id,
+      },
+    });
+  };
+
+  const startQuiz = (lessonId: string) => {
+    router.push(`/quiz/${lessonId}`);
+  };
+
+  const openAssignments = () => {
+    router.push(`/assignment/${id}`);
+  };
+
   const buyCourse = async () => {
     try {
+      setLoading(true);
       await payForCourse(499, id as string, "teacher_123");
       Alert.alert("Success", "Course Purchased Successfully!");
       setAccess(true);
     } catch (e) {
       console.log(e);
       Alert.alert("Payment Failed", "Unable to complete payment.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -159,7 +196,12 @@ export default function CourseDetail() {
     if (!user) return;
 
     try {
-      const updated = await completeLesson(user.uid, id as string, lessonId);
+      setLoading(true);
+      const updated = await completeLesson(
+        user.uid,
+        id as string,
+        lessonId
+      );
 
       const safeUpdated = updated || [];
 
@@ -172,31 +214,39 @@ export default function CourseDetail() {
 
       setProgress(percent);
 
-      setCourseCompleted(
+      const completed =
         lessons.length > 0 &&
-        safeUpdated.length === lessons.length
-      );
+        safeUpdated.length === lessons.length;
+
+      setCourseCompleted(completed);
+
+      // ✅ Automatically generate certificate
+      if (completed) {
+        const existing = await getCertificate(
+          user.uid,
+          id as string
+        );
+
+        if (!existing) {
+          await generateCertificate(
+            user.uid,
+            id as string,
+            user.displayName || "Student",
+            "KnowledgeVerse Course"
+          );
+
+          Alert.alert(
+            "🎉 Congratulations!",
+            "Your course certificate has been generated."
+          );
+        }
+      }
     } catch (e) {
       console.log(e);
+    } finally {
+      setLoading(false);
     }
   };
-
-  if (loading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#0B1220",
-        }}
-      >
-        <Text style={{ color: "white", fontSize: 18 }}>
-          Loading Course...
-        </Text>
-      </View>
-    );
-  }
 
   if (!access) {
     return (
@@ -210,7 +260,7 @@ export default function CourseDetail() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: "#0B1220" }}
+      style={Theme.screen} // ✅ Hooked into Theme Engine
       contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
     >
       <CourseHeader
@@ -225,20 +275,66 @@ export default function CourseDetail() {
 
       {selectedLesson && (
         <>
-          <CoursePlayer
-            title={selectedLesson.title}
-            description={selectedLesson.description}
-            videoUrl={selectedLesson.videoUrl}
-            pdfUrl={selectedLesson.pdfUrl}
+          <View style={{ marginBottom: 10 }}>
+            <CoursePlayer
+              title={selectedLesson.title}
+              description={selectedLesson.description}
+              videoUrl={selectedLesson.videoUrl}
+              pdfUrl={selectedLesson.pdfUrl}
+            />
+
+            <BookmarkButton
+              courseId={id as string}
+              lessonId={selectedLesson.id}
+              lessonTitle={selectedLesson.title}
+            />
+
+            <DownloadButton
+              courseId={id as string}
+              lessonId={selectedLesson.id}
+              lessonTitle={selectedLesson.title}
+              videoUrl={selectedLesson.videoUrl}
+            />
+          </View>
+
+          <QuizCard
+            lessonId={selectedLesson.id}
+            onStart={startQuiz}
           />
 
-          <Text
+          <TouchableOpacity
+            onPress={openNotes}
             style={{
-              color: "white",
-              fontSize: 22,
-              fontWeight: "bold",
-              marginBottom: 15,
+              backgroundColor: Colors.primary, // ✅ Token Applied
+              paddingVertical: 14,
+              borderRadius: 12,
+              marginTop: 15,
+              marginBottom: 20,
+              alignItems: "center",
             }}
+          >
+            <Text
+              style={[
+                Theme.text, // ✅ Unified Style Applied
+                {
+                  fontWeight: "bold",
+                  fontSize: 17,
+                },
+              ]}
+            >
+              📝 Open Lesson Notes
+            </Text>
+          </TouchableOpacity>
+
+          <Text
+            style={[
+              Theme.text, // ✅ Unified Style Applied
+              {
+                fontSize: 22,
+                fontWeight: "bold",
+                marginBottom: 15,
+              },
+            ]}
           >
             Lessons
           </Text>
@@ -252,6 +348,29 @@ export default function CourseDetail() {
         onSelectLesson={openLesson}
         onCompleteLesson={markCompleted}
       />
+
+      <TouchableOpacity
+        onPress={openAssignments}
+        style={{
+          backgroundColor: Colors.success, // ✅ Token Applied
+          paddingVertical: 14,
+          borderRadius: 12,
+          marginTop: 25,
+          alignItems: "center",
+        }}
+      >
+        <Text
+          style={[
+            Theme.text, // ✅ Unified Style Applied
+            {
+              fontWeight: "bold",
+              fontSize: 16,
+            },
+          ]}
+        >
+          📝 View Assignments
+        </Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }

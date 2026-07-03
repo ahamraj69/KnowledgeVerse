@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Alert,
   StyleSheet,
@@ -10,45 +10,48 @@ import {
 } from "react-native";
 
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { useLoading } from "../context/LoadingContext";
 import { auth } from "../lib/firebase";
+import { Colors } from "../theme/colors"; // ✅ Added Token Reference
+import { Theme } from "../theme/theme"; // ✅ Added Macro Style Reference
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  
+  const { setLoading } = useLoading();
 
-  const loginUser = async () => {
+  const loginUser = useCallback(async () => {
     if (!email || !password) {
       Alert.alert("Error", "Enter email and password");
       return;
     }
 
     try {
-      // Step 2: Authenticate user session
+      setLoading(true);
+      
       await signInWithEmailAndPassword(
         auth,
         email.trim(),
         password
       );
 
-      // Step 2: Redirect to home route directly instead of showing a success alert
       router.replace("/");
     } catch (error: any) {
       console.log(error);
-
-      Alert.alert(
-        "Login Failed",
-        error.message
-      );
+      Alert.alert("Login Failed", error.message);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [email, password, setLoading]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🔐 Login</Text>
+    <View style={[Theme.screen, { justifyContent: "center", padding: 20 }]}>
+      <Text style={[Theme.text, styles.title]}>🔐 Login</Text>
 
       <TextInput
         placeholder="Email"
-        placeholderTextColor="#aaa"
+        placeholderTextColor={Colors.textMuted} // ✅ Token applied
         value={email}
         onChangeText={setEmail}
         style={styles.input}
@@ -58,7 +61,7 @@ export default function LoginScreen() {
 
       <TextInput
         placeholder="Password"
-        placeholderTextColor="#aaa"
+        placeholderTextColor={Colors.textMuted} // ✅ Token applied
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -69,19 +72,18 @@ export default function LoginScreen() {
         style={styles.btn}
         onPress={loginUser}
       >
-        <Text style={styles.btnText}>
+        <Text style={[Theme.text, styles.btnText]}>
           Login
         </Text>
       </TouchableOpacity>
 
-      {/* Step 3: Add a Sign Up button with inline styles directly below the login button */}
       <TouchableOpacity
         onPress={() => router.push("/signup")}
         style={{ marginTop: 20 }}
       >
         <Text
           style={{
-            color: "#60A5FA",
+            color: Colors.purple, // ✅ Token applied for a punchy anchor link layout matching modern guidelines
             textAlign: "center",
             fontSize: 16,
           }}
@@ -94,34 +96,26 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0B1220",
-    justifyContent: "center",
-    padding: 20,
-  },
   title: {
-    color: "white",
     fontSize: 30,
     fontWeight: "bold",
     marginBottom: 30,
     textAlign: "center",
   },
   input: {
-    backgroundColor: "#1F2937",
-    color: "white",
+    backgroundColor: Colors.card, // ✅ Token applied
+    color: Colors.text,           // ✅ Token applied
     padding: 15,
     borderRadius: 10,
     marginBottom: 15,
   },
   btn: {
-    backgroundColor: "#2563EB",
+    backgroundColor: Colors.primary, // ✅ Token applied
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
   },
   btnText: {
-    color: "white",
     fontSize: 18,
     fontWeight: "bold",
   },

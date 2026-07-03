@@ -1,180 +1,56 @@
-import { doc, getDoc } from "firebase/firestore";
-import { useEffect, useState } from "react";
-import {
-    ActivityIndicator,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { router } from "expo-router";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useAuth } from "../context/AuthContext"; // Update context path relative to file location if needed
 
-import { auth, db } from "../lib/firebase";
-
-export default function Profile() {
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
-
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const loadProfile = async () => {
-    try {
-      const user = auth.currentUser;
-
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      const docRef = doc(db, "users", user.uid);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        setProfile(docSnap.data());
-      } else {
-        setProfile({
-          name: "Unknown User",
-          email: user.email,
-          role: "student",
-        });
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#0B1220",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <ActivityIndicator color="white" size="large" />
-      </View>
-    );
-  }
+export default function ProfileScreen() {
+  const { user } = useAuth() || { user: { displayName: "Student", email: "student@knowledgeverse.com" } };
 
   return (
     <ScrollView
-      style={{
-        flex: 1,
-        backgroundColor: "#0B1220",
-      }}
-      contentContainerStyle={{
-        padding: 20,
-      }}
+      style={{ flex: 1, backgroundColor: "#0B1220" }}
+      contentContainerStyle={{ padding: 25 }}
     >
       <Text
         style={{
           color: "white",
-          fontSize: 28,
+          fontSize: 26,
           fontWeight: "bold",
-          marginBottom: 25,
+          marginBottom: 20,
         }}
       >
-        👤 My Profile
+        👤 Profile Management
       </Text>
 
+      {/* User Information Summary Card */}
       <View
         style={{
           backgroundColor: "#1F2937",
           padding: 20,
-          borderRadius: 15,
-          marginBottom: 20,
+          borderRadius: 16,
+          marginBottom: 10,
         }}
       >
-        <Text
-          style={{
-            color: "#9CA3AF",
-            fontSize: 14,
-          }}
-        >
-          Name
+        <Text style={{ color: "white", fontSize: 20, fontWeight: "bold" }}>
+          {user?.displayName || "Student"}
         </Text>
-
-        <Text
-          style={{
-            color: "white",
-            fontSize: 20,
-            fontWeight: "bold",
-            marginTop: 5,
-          }}
-        >
-          {profile?.name || "Not Available"}
+        <Text style={{ color: "#9CA3AF", marginTop: 4 }}>
+          {user?.email || "No email assigned"}
         </Text>
       </View>
 
-      <View
-        style={{
-          backgroundColor: "#1F2937",
-          padding: 20,
-          borderRadius: 15,
-          marginBottom: 20,
-        }}
-      >
-        <Text style={{ color: "#9CA3AF" }}>
-          Email
-        </Text>
-
-        <Text
-          style={{
-            color: "white",
-            fontSize: 18,
-            marginTop: 5,
-          }}
-        >
-          {profile?.email}
-        </Text>
-      </View>
-
-      <View
-        style={{
-          backgroundColor: "#1F2937",
-          padding: 20,
-          borderRadius: 15,
-          marginBottom: 20,
-        }}
-      >
-        <Text style={{ color: "#9CA3AF" }}>
-          Role
-        </Text>
-
-        <Text
-          style={{
-            color: "#10B981",
-            fontSize: 18,
-            fontWeight: "bold",
-            marginTop: 5,
-            textTransform: "capitalize",
-          }}
-        >
-          {profile?.role}
-        </Text>
-      </View>
-
+      {/* ✅ STEP 2: Quick Profile Learning Analytics Access Shortcut */}
       <TouchableOpacity
+        onPress={() => router.push("/analytics")}
         style={{
-          backgroundColor: "#2563EB",
-          padding: 16,
+          backgroundColor: "#1F2937",
+          padding: 14,
           borderRadius: 12,
+          marginTop: 15,
           alignItems: "center",
         }}
       >
-        <Text
-          style={{
-            color: "white",
-            fontSize: 16,
-            fontWeight: "bold",
-          }}
-        >
-          ✏️ Edit Profile
+        <Text style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>
+          📊 View My Learning Stats
         </Text>
       </TouchableOpacity>
     </ScrollView>

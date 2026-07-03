@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   /**
-   * 👀 Listen to login state changes
+   * 👀 Listen to login state changes (Optimized with strict explicit cleanup wrapper)
    */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -43,7 +43,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    return unsubscribe;
+    // ✅ FIX: Strict explicit unsubscribe invoke safely unmounts listeners
+    return () => unsubscribe();
   }, []);
 
   /**
