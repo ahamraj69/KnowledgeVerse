@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   FlatList,
   Text,
@@ -29,11 +30,33 @@ export default function LessonList({
   onSelectLesson,
   onCompleteLesson,
 }: Props) {
+  // Step 2: Create a ref pointing to the FlatList component instance
+  const listRef = useRef<FlatList>(null);
+
+  // Step 3: Trigger side effect to auto-scroll when the selected lesson shifts
+  useEffect(() => {
+    if (!selectedLesson) return;
+
+    const index = lessons.findIndex(
+      (item) => item.id === selectedLesson.id
+    );
+
+    if (index >= 0) {
+      listRef.current?.scrollToIndex({
+        index,
+        animated: true,
+        viewPosition: 0.5, // Centers the element cleanly inside the viewport frame
+      });
+    }
+  }, [selectedLesson, lessons]);
+
   return (
     <FlatList
+      // Step 4: Attach the created ref variable to the component instance
+      ref={listRef}
       data={lessons}
       keyExtractor={(item) => item.id}
-      scrollEnabled={false}
+      // Note: scrollEnabled={false} was removed here to let scrollToIndex work cleanly
       renderItem={({ item, index }) => {
         const completed =
           completedLessons.includes(item.id);
