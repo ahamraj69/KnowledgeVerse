@@ -34,6 +34,9 @@ import {
   payForCourse,
 } from "../../services/razorpayService";
 import {
+  saveRecentlyViewed,
+} from "../../services/recentlyViewedService";
+import {
   addToWishlist,
 } from "../../services/wishlistService";
 
@@ -49,28 +52,31 @@ export default function CourseDetail() {
   const [progress, setProgress] = useState(0);
   const [courseCompleted, setCourseCompleted] = useState(false);
 
+  // ✅ FIX: Optimized dependency loop prevention
   useEffect(() => {
     if (!id) return;
 
     loadCourse();
-  }, [id, user]);
+  }, [id]);
 
   const loadCourse = async () => {
     try {
+      if (user) {
+        await saveRecentlyViewed(user.uid, id as string);
+      }
+
       const purchased = await hasAccess(id as string);
       setAccess(purchased);
 
       const data = await getLessons(id as string);
       setLessons(data);
 
+      // ✅ FIX: Strict length verification for safer evaluation
       if (data.length > 0) {
-        let lessonToOpen = data[0];
+        let lessonToOpen: Lesson | null = data.length ? data[0] : null;
 
         if (user) {
-          const recent = await getContinueLearning(
-            user.uid,
-            id as string
-          );
+          const recent = await getContinueLearning(user.uid, id as string);
 
           if (recent) {
             const found = data.find(
@@ -79,25 +85,34 @@ export default function CourseDetail() {
 
             if (found) {
               lessonToOpen = found;
+            } else {
+              lessonToOpen = data.length ? data[0] : null;
             }
           }
         }
 
         setSelectedLesson(lessonToOpen);
+      } else {
+        setSelectedLesson(null);
       }
 
       if (user) {
         const saved = await getProgress(user.uid, id as string);
-        setCompletedLessons(saved.completedLessons);
+
+        setCompletedLessons(saved?.completedLessons || []);
+
+        const totalLessons = data.length || 0;
 
         const percent = progressPercent(
-          saved.completedLessons.length,
-          data.length
+          saved?.completedLessons?.length || 0,
+          totalLessons
         );
+
         setProgress(percent);
 
         setCourseCompleted(
-          data.length > 0 && saved.completedLessons.length === data.length
+          totalLessons > 0 &&
+          (saved?.completedLessons?.length || 0) === totalLessons
         );
       }
     } catch (e) {
@@ -145,13 +160,21 @@ export default function CourseDetail() {
 
     try {
       const updated = await completeLesson(user.uid, id as string, lessonId);
-      setCompletedLessons(updated);
 
-      const percent = progressPercent(updated.length, lessons.length);
+      const safeUpdated = updated || [];
+
+      setCompletedLessons(safeUpdated);
+
+      const percent = progressPercent(
+        safeUpdated.length,
+        lessons.length || 0
+      );
+
       setProgress(percent);
 
       setCourseCompleted(
-        lessons.length > 0 && updated.length === lessons.length
+        lessons.length > 0 &&
+        safeUpdated.length === lessons.length
       );
     } catch (e) {
       console.log(e);
