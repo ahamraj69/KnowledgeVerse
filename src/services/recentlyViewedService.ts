@@ -11,7 +11,7 @@ import {
   setDoc,
 } from "firebase/firestore";
 
-import { db } from "../lib/firebase";
+import { db } from "../lib/firebase"; // ✅ FIX: Points to src/lib/firebase
 
 export interface RecentlyViewedCourse {
   courseId: string;
@@ -19,7 +19,6 @@ export interface RecentlyViewedCourse {
   lastViewedAt: any;
 }
 
-// Phase 11.5.4.6: Save and trim history to only the latest 10 courses
 export async function saveRecentlyViewed(
   userId: string,
   courseId: string
@@ -50,14 +49,12 @@ export async function saveRecentlyViewed(
 
   if (snapshot.size > 10) {
     const docs = snapshot.docs;
-    // Iterate and drop everything past index 9
     for (let i = 10; i < docs.length; i++) {
       await deleteDoc(docs[i].ref);
     }
   }
 }
 
-// Phase 11.5.4.7: Firestore Query Optimization with explicit limit
 export async function getRecentlyViewed(
   userId: string
 ): Promise<RecentlyViewedCourse[]> {
@@ -65,7 +62,7 @@ export async function getRecentlyViewed(
     const q = query(
       collection(db, "users", userId, "recentlyViewed"),
       orderBy("lastViewedAt", "desc"),
-      limit(10) // Returns only the newest 10 documents
+      limit(10)
     );
 
     const snapshot = await getDocs(q);

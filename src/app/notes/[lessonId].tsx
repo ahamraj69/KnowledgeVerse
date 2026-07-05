@@ -1,13 +1,13 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 import CourseNoteCard from "../../components/CourseNoteCard";
@@ -15,11 +15,11 @@ import NoteEditor from "../../components/NoteEditor";
 import { useAuth } from "../../context/AuthContext";
 
 import {
-    addNote,
-    CourseNote,
-    deleteNote,
-    getLessonNotes,
-    updateNote,
+  addNote,
+  CourseNote,
+  deleteNote,
+  getLessonNotes,
+  updateNote,
 } from "../../services/notesService";
 
 export default function LessonNotes() {

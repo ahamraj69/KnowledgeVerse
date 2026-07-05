@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -36,16 +37,15 @@ export default function AnalyticsScreen() {
     try {
       setLoading(true);
 
-      const data =
-        await getUserAnalytics(user!.uid);
+      const data = await getUserAnalytics(user.uid);
 
       setAnalytics(data);
-    } catch (e) {
-      console.log(e);
+    } catch (error) {
+      console.log(error);
 
       Alert.alert(
         "Error",
-        "Failed to load analytics"
+        "Failed to load analytics."
       );
     } finally {
       setLoading(false);
@@ -54,22 +54,13 @@ export default function AnalyticsScreen() {
 
   if (loading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#0B1220",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <ActivityIndicator color="#2563EB" />
+      <View style={styles.center}>
+        <ActivityIndicator
+          size="large"
+          color="#2563EB"
+        />
 
-        <Text
-          style={{
-            color: "white",
-            marginTop: 10,
-          }}
-        >
+        <Text style={styles.loading}>
           Loading Analytics...
         </Text>
       </View>
@@ -78,103 +69,112 @@ export default function AnalyticsScreen() {
 
   if (!analytics) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#0B1220",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Text
-          style={{
-            color: "white",
-          }}
-        >
-          No analytics available
+      <View style={styles.center}>
+        <Text style={styles.loading}>
+          No analytics available.
         </Text>
       </View>
     );
   }
+
   return (
-  <ScrollView
-    style={{
-      flex: 1,
-      backgroundColor: "#0B1220",
-    }}
-    contentContainerStyle={{
-      padding: 20,
-      paddingBottom: 40,
-    }}
-  >
-    {/* Header */}
-    <Text
-      style={{
-        color: "white",
-        fontSize: 28,
-        fontWeight: "bold",
-        marginBottom: 20,
-      }}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
     >
-      📊 Your Analytics
-    </Text>
+      <Text style={styles.title}>
+        📊 Your Analytics
+      </Text>
 
-    {/* Key Progress Cards */}
-    <ProgressCard
-      title="📥 Downloads"
-      value={analytics.totalDownloads}
-      subtitle="Offline lessons saved"
-      color="#22C55E"
-    />
+      <ProgressCard
+        title="📥 Downloads"
+        value={analytics.totalDownloads}
+        subtitle="Offline lessons saved"
+        color="#22C55E"
+      />
 
-    <ProgressCard
-      title="📝 Assignments"
-      value={analytics.totalAssignments}
-      subtitle="Total submissions"
-      color="#2563EB"
-    />
+      <ProgressCard
+        title="📝 Assignments"
+        value={analytics.totalAssignments}
+        subtitle="Completed assignments"
+        color="#2563EB"
+      />
 
-    <ProgressCard
-      title="🧠 Quiz Attempts"
-      value={analytics.quizAttempts}
-      subtitle="Completed quizzes"
-      color="#A855F7"
-    />
+      <ProgressCard
+        title="🧠 Quiz Attempts"
+        value={analytics.quizAttempts}
+        subtitle="Total quizzes attempted"
+        color="#A855F7"
+      />
 
-    <ProgressCard
-      title="📊 Average Score"
-      value={analytics.averageScore.toFixed(1)}
-      subtitle="Out of 100"
-      color="#F59E0B"
-    />
+      <ProgressCard
+        title="📈 Average Score"
+        value={`${analytics.averageScore.toFixed(
+          1
+        )}%`}
+        subtitle="Average quiz score"
+        color="#F59E0B"
+      />
 
-    {/* Stats Grid */}
-    <StatsCard
-      title="📈 Performance Overview"
-      stats={[
-        {
-          label: "Total Score",
-          value: analytics.totalQuizScore,
-          color: "#A855F7",
-        },
-        {
-          label: "Avg Performance",
-          value: `${analytics.averageScore.toFixed(
-            1
-          )}%`,
-          color: "#22C55E",
-        },
-        {
-          label: "Assignments",
-          value: analytics.totalAssignments,
-          color: "#2563EB",
-        },
-        {
-          label: "Downloads",
-          value: analytics.totalDownloads,
-          color: "#F59E0B",
-        },
-      ]}
-    />
-  </ScrollView>
-);
+      <StatsCard
+        title="📈 Performance Overview"
+        stats={[
+          {
+            label: "Total Score",
+            value: analytics.totalQuizScore,
+            color: "#A855F7",
+          },
+          {
+            label: "Average",
+            value: `${analytics.averageScore.toFixed(
+              1
+            )}%`,
+            color: "#22C55E",
+          },
+          {
+            label: "Assignments",
+            value: analytics.totalAssignments,
+            color: "#2563EB",
+          },
+          {
+            label: "Downloads",
+            value: analytics.totalDownloads,
+            color: "#F59E0B",
+          },
+        ]}
+      />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#0B1220",
+  },
+
+  content: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+
+  center: {
+    flex: 1,
+    backgroundColor: "#0B1220",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  loading: {
+    color: "#FFFFFF",
+    marginTop: 12,
+    fontSize: 16,
+  },
+
+  title: {
+    color: "#FFFFFF",
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+});

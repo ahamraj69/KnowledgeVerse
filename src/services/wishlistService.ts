@@ -1,14 +1,14 @@
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    query,
-    where,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  where,
 } from "firebase/firestore";
 
-import { auth, db } from "../lib/firebase";
+import { auth, db } from "../lib/firebase"; // ✅ FIX: Points to src/lib/firebase
 
 export const addToWishlist = async (courseId: string) => {
   const user = auth.currentUser;

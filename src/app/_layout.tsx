@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
+import GlobalLoader from "../components/GlobalLoader";
 import { AuthProvider } from "../context/AuthContext";
-import GlobalLoader from "../src/components/GlobalLoader";
-import { LoadingProvider } from "../src/context/LoadingContext";
+import { LoadingProvider } from "../context/LoadingContext";
 
 /**
  * 🚀 Root Layout (App Entry)

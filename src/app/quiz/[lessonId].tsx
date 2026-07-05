@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Text,
-  View,
+  View
 } from "react-native";
 
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 
 import QuestionCard from "../../components/QuestionCard";
 import {
-  calculateScore,
   getQuizByLesson,
-  Quiz,
+  Quiz
 } from "../../services/quizService";
 
 export default function QuizScreen() {
@@ -209,3 +207,4 @@ export default function QuizScreen() {
     </View>
   </View>
 );
+}

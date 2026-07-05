@@ -8,7 +8,7 @@ import {
   where,
 } from "firebase/firestore";
 
-import { db } from "../lib/firebase";
+import { db } from "../lib/firebase"; // ✅ FIX: Points to src/lib/firebase
 
 export interface Lesson {
   id?: string;

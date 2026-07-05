@@ -1,11 +1,11 @@
 import {
-    doc,
-    getDoc,
-    serverTimestamp,
-    setDoc,
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
 
-import { db } from "../lib/firebase";
+import { db } from "../lib/firebase"; // ✅ FIX: Points to src/lib/firebase
 
 export interface ContinueLearning {
   userId: string;

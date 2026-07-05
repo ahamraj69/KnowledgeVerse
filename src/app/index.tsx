@@ -1,9 +1,22 @@
 import { router } from "expo-router";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-// Mock component placeholders for system compatibility
-// Replace these with your actual local component paths if needed
-function Card({ title, icon, color, onPress }: any) {
+function Card({
+  title,
+  icon,
+  color,
+  onPress,
+}: {
+  title: string;
+  icon: string;
+  color: string;
+  onPress: () => void;
+}) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -11,13 +24,27 @@ function Card({ title, icon, color, onPress }: any) {
         backgroundColor: color,
         padding: 16,
         borderRadius: 14,
-        marginVertical: 8,
+        marginBottom: 12,
         flexDirection: "row",
         alignItems: "center",
       }}
     >
-      <Text style={{ fontSize: 24, marginRight: 12 }}>{icon}</Text>
-      <Text style={{ color: "white", fontSize: 18, fontWeight: "bold" }}>
+      <Text
+        style={{
+          fontSize: 28,
+          marginRight: 15,
+        }}
+      >
+        {icon}
+      </Text>
+
+      <Text
+        style={{
+          color: "white",
+          fontSize: 18,
+          fontWeight: "bold",
+        }}
+      >
         {title}
       </Text>
     </TouchableOpacity>
@@ -27,74 +54,157 @@ function Card({ title, icon, color, onPress }: any) {
 export default function HomeScreen() {
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: "#0B1220" }}
-      contentContainerStyle={{ padding: 20 }}
+      style={{
+        flex: 1,
+        backgroundColor: "#0B1220",
+      }}
+      contentContainerStyle={{
+        padding: 20,
+        paddingBottom: 40,
+      }}
     >
-      {/* Welcome Title Area */}
       <Text
         style={{
           color: "white",
-          fontSize: 28,
+          fontSize: 30,
           fontWeight: "bold",
-          marginBottom: 20,
         }}
       >
-        Welcome back 👋
+        Welcome Back 👋
       </Text>
 
-      {/* ✅ STEP 3: Smart Dashboard Shortcut Widget (Home Top) */}
+      <Text
+        style={{
+          color: "#9CA3AF",
+          marginTop: 6,
+          marginBottom: 24,
+        }}
+      >
+        Continue learning and explore all KnowledgeVerse features.
+      </Text>
+
+      {/* Dashboard */}
       <View
         style={{
           backgroundColor: "#111827",
-          padding: 15,
-          borderRadius: 14,
-          marginBottom: 20,
+          borderRadius: 15,
+          padding: 18,
+          marginBottom: 25,
         }}
       >
-        <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-          📊 Quick Insight
+        <Text
+          style={{
+            color: "white",
+            fontSize: 18,
+            fontWeight: "bold",
+          }}
+        >
+          📊 Smart Dashboard
         </Text>
 
-        <Text style={{ color: "#9CA3AF", marginTop: 5 }}>
-          Track your progress, quizzes, and assignments in one place.
+        <Text
+          style={{
+            color: "#9CA3AF",
+            marginTop: 8,
+          }}
+        >
+          View analytics, quizzes, assignments,
+          certificates and learning progress.
         </Text>
 
         <TouchableOpacity
           onPress={() => router.push("/analytics")}
           style={{
-            marginTop: 10,
+            marginTop: 15,
             backgroundColor: "#2563EB",
-            padding: 10,
+            padding: 12,
             borderRadius: 10,
             alignItems: "center",
           }}
         >
-          <Text style={{ color: "white", fontWeight: "bold" }}>
+          <Text
+            style={{
+              color: "white",
+              fontWeight: "bold",
+            }}
+          >
             Open Dashboard
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Grid Menu Section Container */}
       <Text
         style={{
           color: "white",
-          fontSize: 20,
+          fontSize: 22,
           fontWeight: "bold",
-          marginBottom: 10,
+          marginBottom: 15,
         }}
       >
-        Explore Sections
+        Explore
       </Text>
 
-      {/* Existing navigation cards flow... */}
+      <Card
+        title="Courses"
+        icon="📚"
+        color="#2563EB"
+        onPress={() => router.push("/courses")}
+      />
 
-      {/* ✅ STEP 1: Analytics Dashboard Navigation Card */}
+      <Card
+        title="Bookmarks"
+        icon="🔖"
+        color="#059669"
+        onPress={() => router.push("/bookmarks")}
+      />
+
+      <Card
+        title="Wishlist"
+        icon="❤️"
+        color="#DC2626"
+        onPress={() => router.push("/wishlist")}
+      />
+
+      <Card
+        title="Continue Learning"
+        icon="▶️"
+        color="#7C3AED"
+        onPress={() => router.push("/continue-learning")}
+      />
+
+      <Card
+        title="Recently Viewed"
+        icon="🕒"
+        color="#EA580C"
+        onPress={() => router.push("/recently-viewed")}
+      />
+
+      <Card
+        title="Assignments"
+        icon="📝"
+        color="#0891B2"
+        onPress={() => router.push("/assignment")}
+      />
+
       <Card
         title="Analytics"
         icon="📊"
         color="#0EA5E9"
         onPress={() => router.push("/analytics")}
+      />
+
+      <Card
+        title="Certificates"
+        icon="🏆"
+        color="#CA8A04"
+        onPress={() => router.push("/certificate")}
+      />
+
+      <Card
+        title="Profile"
+        icon="👤"
+        color="#374151"
+        onPress={() => router.push("/profile")}
       />
     </ScrollView>
   );

@@ -1,10 +1,10 @@
 import {
-    doc,
-    getDoc,
-    setDoc,
+  doc,
+  getDoc,
+  setDoc,
 } from "firebase/firestore";
 
-import { db } from "../lib/firebase";
+import { db } from "../lib/firebase"; // ✅ FIX: Points to src/lib/firebase
 
 export interface CourseProgress {
   completedLessons: string[];

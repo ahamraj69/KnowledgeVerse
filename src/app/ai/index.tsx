@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -14,8 +15,8 @@ import {
   getAISuggestions,
 } from "../../services/aiSuggestionService";
 
-import SuggestionCard from "../../components/SuggestionCard";
 import LearningPath from "../../components/LearningPath";
+import SuggestionCard from "../../components/SuggestionCard";
 
 export default function AIScreen() {
   const { user } = useAuth();
@@ -29,24 +30,22 @@ export default function AIScreen() {
   useEffect(() => {
     if (!user) return;
 
-    loadAI();
+    loadSuggestions();
   }, [user]);
 
-  const loadAI = async () => {
+  const loadSuggestions = async () => {
     try {
       setLoading(true);
 
-      const data = await getAISuggestions(
-        user!.uid
-      );
+      const data = await getAISuggestions(user.uid);
 
       setSuggestions(data);
-    } catch (e) {
-      console.log(e);
+    } catch (error) {
+      console.log(error);
 
       Alert.alert(
         "Error",
-        "Failed to load AI suggestions"
+        "Failed to load AI suggestions."
       );
     } finally {
       setLoading(false);
@@ -55,116 +54,124 @@ export default function AIScreen() {
 
   if (loading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#0B1220",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <ActivityIndicator color="#A855F7" />
+      <View style={styles.center}>
+        <ActivityIndicator
+          size="large"
+          color="#A855F7"
+        />
 
-        <Text
-          style={{
-            color: "white",
-            marginTop: 10,
-          }}
-        >
+        <Text style={styles.loading}>
           Loading AI Suggestions...
         </Text>
       </View>
     );
   }
 
-  if (!suggestions.length) {
+  if (suggestions.length === 0) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#0B1220",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: 20,
-        }}
-      >
-        <Text style={{ fontSize: 50 }}>🧠</Text>
+      <View style={styles.center}>
+        <Text style={styles.emoji}>🧠</Text>
 
-        <Text
-          style={{
-            color: "white",
-            fontSize: 20,
-            fontWeight: "bold",
-            marginTop: 10,
-          }}
-        >
+        <Text style={styles.emptyTitle}>
           You're doing great!
         </Text>
 
-        <Text
-          style={{
-            color: "#9CA3AF",
-            marginTop: 8,
-            textAlign: "center",
-          }}
-        >
-          No recommendations needed right now
+        <Text style={styles.emptySubtitle}>
+          No AI recommendations available right now.
         </Text>
       </View>
     );
   }
+
   return (
-  <ScrollView
-    style={{
-      flex: 1,
-      backgroundColor: "#0B1220",
-    }}
-    contentContainerStyle={{
-      padding: 20,
-      paddingBottom: 40,
-    }}
-  >
-    {/* Header */}
-    <Text
-      style={{
-        color: "white",
-        fontSize: 28,
-        fontWeight: "bold",
-        marginBottom: 20,
-      }}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
     >
-      🧠 AI Learning Assistant
-    </Text>
+      <Text style={styles.title}>
+        🧠 AI Learning Assistant
+      </Text>
 
-    {/* AI Learning Path */}
-    <LearningPath suggestions={suggestions} />
-
-    {/* Divider */}
-    <View
-      style={{
-        height: 1,
-        backgroundColor: "#1F2937",
-        marginVertical: 15,
-      }}
-    />
-
-    {/* Suggestions Section */}
-    <Text
-      style={{
-        color: "white",
-        fontSize: 18,
-        fontWeight: "bold",
-        marginBottom: 10,
-      }}
-    >
-      📌 Recommendations
-    </Text>
-
-    {suggestions.map((item, index) => (
-      <SuggestionCard
-        key={index}
-        suggestion={item}
+      <LearningPath
+        suggestions={suggestions}
       />
-    ))}
-  </ScrollView>
-);
+
+      <View style={styles.divider} />
+
+      <Text style={styles.section}>
+        📌 Recommendations
+      </Text>
+
+      {suggestions.map((item, index) => (
+        <SuggestionCard
+          key={index}
+          suggestion={item}
+        />
+      ))}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#0B1220",
+  },
+
+  content: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+
+  center: {
+    flex: 1,
+    backgroundColor: "#0B1220",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+
+  loading: {
+    color: "#FFFFFF",
+    marginTop: 12,
+    fontSize: 16,
+  },
+
+  emoji: {
+    fontSize: 60,
+  },
+
+  emptyTitle: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "bold",
+    marginTop: 12,
+  },
+
+  emptySubtitle: {
+    color: "#9CA3AF",
+    marginTop: 10,
+    textAlign: "center",
+    fontSize: 15,
+  },
+
+  title: {
+    color: "#FFFFFF",
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: "#1F2937",
+    marginVertical: 20,
+  },
+
+  section: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+});
