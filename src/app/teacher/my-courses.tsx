@@ -12,6 +12,7 @@ import {
 
 import { db } from "../../lib/firebase";
 import { deleteCourse } from "../../services/deleteCourseService";
+import { publishCourse } from "../../services/publishCourseService";
 import { Colors } from "../../theme/colors";
 import { Theme } from "../../theme/theme";
 
@@ -20,6 +21,7 @@ interface Course {
   title: string;
   description: string;
   thumbnail?: string;
+  status: "draft" | "published"; 
 }
 
 export default function MyCourses() {
@@ -27,9 +29,8 @@ export default function MyCourses() {
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // ✅ Step 1: Add a deleting state tracker for unique identifiers
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"all" | "draft" | "published">("all");
 
   useEffect(() => {
     loadCourses();
@@ -49,8 +50,9 @@ export default function MyCourses() {
           title: fields.title || "Untitled Course",
           description: fields.description || "No description provided.",
           thumbnail: fields.thumbnail || undefined,
+          status: fields.status || "draft",
         };
-      });
+      }) as Course[];
 
       setCourses(data);
     } catch (error) {
@@ -59,6 +61,11 @@ export default function MyCourses() {
       setLoading(false);
     }
   };
+
+  const filteredCourses = courses.filter((course) => {
+    if (filter === "all") return true;
+    return course.status === filter;
+  });
 
   const removeCourse = (courseId: string) => {
     Alert.alert(
@@ -72,16 +79,13 @@ export default function MyCourses() {
         {
           text: "Delete",
           style: "destructive",
-          // ✅ Step 2: Injected lock protection to clear background loop glitches
           onPress: async () => {
             try {
               setDeletingId(courseId);
-
               await deleteCourse(courseId);
 
-              setCourses((prev) =>
-                prev.filter((course) => course.id !== courseId)
-              );
+              // ✅ Step 3: Refresh after Delete to pull down fresh Firestore configurations
+              await loadCourses();
 
               Alert.alert(
                 "Success",
@@ -89,7 +93,6 @@ export default function MyCourses() {
               );
             } catch (error) {
               console.log(error);
-
               Alert.alert(
                 "Error",
                 "Failed to delete course."
@@ -103,7 +106,27 @@ export default function MyCourses() {
     );
   };
 
-  if (loading) {
+  const publish = async (courseId: string) => {
+    try {
+      await publishCourse(courseId);
+
+      // ✅ Step 2: Refresh after Publish to pull down updated data directly from the server
+      await loadCourses();
+
+      Alert.alert(
+        "Success",
+        "Course published successfully."
+      );
+    } catch (error) {
+      console.log(error);
+      Alert.alert(
+        "Error",
+        "Unable to publish course."
+      );
+    }
+  };
+
+  if (loading && courses.length === 0) {
     return (
       <View
         style={{
@@ -128,7 +151,7 @@ export default function MyCourses() {
         padding: 20,
         paddingBottom: 40,
       }}
-      data={courses}
+      data={filteredCourses}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={() => (
         <>
@@ -138,15 +161,48 @@ export default function MyCourses() {
               {
                 fontSize: 30,
                 fontWeight: "bold",
-                marginBottom: 10,
+                marginBottom: 5,
               },
             ]}
           >
             📖 My Courses
           </Text>
 
+          {/* Multi-segment quick action pill filter row widget */}
+          <View
+            style={{
+              flexDirection: "row",
+              marginTop: 15,
+              marginBottom: 15,
+            }}
+          >
+            {["all", "draft", "published"].map((item) => (
+              <TouchableOpacity
+                key={item}
+                onPress={() => setFilter(item as "all" | "draft" | "published")}
+                style={{
+                  backgroundColor: filter === item ? "#2563EB" : "#374151",
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                  borderRadius: 20,
+                  marginRight: 10,
+                }}
+              >
+                <Text
+                  style={{
+                    color: "white",
+                    fontWeight: "bold",
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <Text style={[Theme.muted, { marginBottom: 25, fontSize: 15 }]}>
-            Select an action below to manage, edit, or remove a course.
+            Select an action below to manage, edit, publish or remove a course.
           </Text>
         </>
       )}
@@ -169,16 +225,35 @@ export default function MyCourses() {
             {item.description}
           </Text>
 
-          {/* Action Layout Row Container */}
+          {/* ✅ Step 1: Upgraded Draft / Published visual Badge row container */}
+          <View
+            style={{
+              marginTop: 10,
+              alignSelf: "flex-start",
+              backgroundColor: item.status === "published" ? "#14532D" : "#78350F",
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 20,
+            }}
+          >
+            <Text
+              style={{
+                color: "white",
+                fontWeight: "bold",
+                fontSize: 13,
+              }}
+            >
+              {item.status === "published" ? "🟢 Published" : "🟡 Draft"}
+            </Text>
+          </View>
+
+          {/* Action Row Grid Flow Container */}
           <View style={{ flexDirection: "row", marginTop: 20, flexWrap: "wrap", alignItems: "center" }}>
-            {/* Manage Lessons Action Trigger */}
             <TouchableOpacity
               onPress={() =>
                 router.push({
                   pathname: "/teacher/add-lesson",
-                  params: {
-                    courseId: item.id,
-                  },
+                  params: { courseId: item.id },
                 })
               }
               style={{
@@ -187,6 +262,7 @@ export default function MyCourses() {
                 paddingHorizontal: 14,
                 borderRadius: 8,
                 marginRight: 10,
+                marginBottom: 10,
               }}
               disabled={deletingId !== null}
             >
@@ -195,7 +271,25 @@ export default function MyCourses() {
               </Text>
             </TouchableOpacity>
 
-            {/* ✅ Step 3: Text updates dynamically to block user interactions during execution re-renders */}
+            {item.status === "draft" && (
+              <TouchableOpacity
+                onPress={() => publish(item.id)}
+                disabled={deletingId !== null}
+                style={{
+                  backgroundColor: "#16A34A",
+                  paddingVertical: 10,
+                  paddingHorizontal: 14,
+                  borderRadius: 8,
+                  marginRight: 10,
+                  marginBottom: 10,
+                }}
+              >
+                <Text style={{ color: "white", fontWeight: "bold" }}>
+                  🚀 Publish Course
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               onPress={() => removeCourse(item.id)}
               disabled={deletingId !== null}
@@ -205,27 +299,20 @@ export default function MyCourses() {
                 paddingHorizontal: 14,
                 borderRadius: 8,
                 marginRight: 10,
+                marginBottom: 10,
                 opacity: deletingId !== null ? 0.6 : 1,
               }}
             >
-              <Text
-                style={{
-                  color: "white",
-                  fontWeight: "bold",
-                }}
-              >
+              <Text style={{ color: "white", fontWeight: "bold" }}>
                 {deletingId === item.id ? "Deleting..." : "🗑 Delete Course"}
               </Text>
             </TouchableOpacity>
 
-            {/* Edit Course Settings Action Trigger */}
             <TouchableOpacity
               onPress={() =>
                 router.push({
                   pathname: "/teacher/edit-course" as any,
-                  params: {
-                    courseId: item.id,
-                  },
+                  params: { courseId: item.id },
                 })
               }
               style={{
@@ -233,6 +320,7 @@ export default function MyCourses() {
                 paddingVertical: 10,
                 paddingHorizontal: 14,
                 borderRadius: 8,
+                marginBottom: 10,
               }}
               disabled={deletingId !== null}
             >
@@ -244,17 +332,8 @@ export default function MyCourses() {
         </View>
       )}
       ListEmptyComponent={() => (
-        <Text
-          style={[
-            Theme.muted,
-            {
-              textAlign: "center",
-              marginTop: 80,
-              fontSize: 16,
-            },
-          ]}
-        >
-          No courses found.
+        <Text style={[Theme.muted, { textAlign: "center", marginTop: 80, fontSize: 16 }]}>
+          No {filter !== "all" ? filter : ""} courses found.
         </Text>
       )}
     />
