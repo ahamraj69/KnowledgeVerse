@@ -9,16 +9,12 @@ import {
   View,
 } from "react-native";
 
-import BookmarkButton from "../../components/BookmarkButton";
+import CommentsSection from "../../components/comments/CommentsSection";
 import CourseHeader from "../../components/CourseHeader";
-import CoursePlayer from "../../components/CoursePlayer";
-import DownloadButton from "../../components/DownloadButton";
-import LessonList, {
+import {
   Lesson,
 } from "../../components/LessonList";
-import ProgressCard from "../../components/ProgressCard";
 import PurchaseCard from "../../components/PurchaseCard";
-import QuizCard from "../../components/QuizCard";
 import ReviewCard from "../../components/ReviewCard";
 
 import { useAuth } from "../../context/AuthContext";
@@ -98,8 +94,8 @@ export default function CourseDetail() {
       const data = await getLessons(id as string);
       setLessons(data);
 
-      if (data.length > 0) {
-        let lessonToOpen: Lesson | null = data[0];
+       if (data.length > 0) {
+        let lessonToOpen: Lesson | null = data[0]; // Safely picks the first lesson object
 
         if (user) {
           const recent = await getContinueLearning(user.uid, id as string);
@@ -119,7 +115,6 @@ export default function CourseDetail() {
       } else {
         setSelectedLesson(null);
       }
-
       if (user) {
         const saved = await getProgress(user.uid, id as string);
 
@@ -297,6 +292,7 @@ export default function CourseDetail() {
       setLoading(false);
     }
   };
+
   if (!access) {
     return (
       <PurchaseCard
@@ -315,85 +311,8 @@ export default function CourseDetail() {
       <CourseHeader
         title="🎓 Course Lessons"
         description="Continue learning where you left off."
-      />
-
-      <ProgressCard
-        title="📉 Course Progress"
-        value={progress}
-        subtitle={courseCompleted ? "🎉 Course Completed!" : `${progress}% Completed`}
-        color={Colors.primary}
-      />
-
-      {selectedLesson && (
-        <>
-          <View style={{ marginBottom: 10 }}>
-            <CoursePlayer
-              title={selectedLesson.title}
-              description={selectedLesson.description}
-              videoUrl={selectedLesson.videoUrl}
-              pdfUrl={selectedLesson.pdfUrl}
-            />
-
-            <BookmarkButton
-              courseId={id as string}
-              lessonId={selectedLesson.id}
-              lessonTitle={selectedLesson.title}
-            />
-
-            <DownloadButton
-              courseId={id as string}
-              lessonId={selectedLesson.id}
-              lessonTitle={selectedLesson.title}
-              videoUrl={selectedLesson.videoUrl}
-            />
-          </View>
-
-          <QuizCard
-            lessonId={selectedLesson.id}
-            onStart={startQuiz}
-          />
-
-          <TouchableOpacity
-            onPress={openNotes}
-            style={{
-              backgroundColor: Colors.primary, 
-              paddingVertical: 14,
-              borderRadius: 12,
-              marginTop: 15,
-              marginBottom: 20,
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ color: "white", fontWeight: "bold", fontSize: 17 }}>
-              📝 Open Lesson Notes
-            </Text>
-          </TouchableOpacity>
-        </>
-      )}
-
-      <Text
-        style={[
-          Theme.text, 
-          {
-            fontSize: 22,
-            fontWeight: "bold",
-            marginBottom: 15,
-            marginTop: 10,
-          },
-        ]}
-      >
-        Lessons
-      </Text>
-
-      <LessonList
-        lessons={lessons}
-        selectedLesson={selectedLesson}
-        completedLessons={completedLessons}
-        onSelectLesson={openLesson}
-        onCompleteLesson={markCompleted}
-      />
-
-      <TouchableOpacity
+         />
+                  <TouchableOpacity
         onPress={openAssignments}
         style={{
           backgroundColor: Colors.success,
@@ -442,21 +361,24 @@ export default function CourseDetail() {
             marginBottom: 20,
           }}
         >
-          {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => (
-            <TouchableOpacity
-              key={star}
-              onPress={() => setRating(star)}
-            >
-              <Text
-                style={{
-                  fontSize: 34,
-                  color: star <= rating ? "#FACC15" : "#6B7280",
-                }}
+          {["1", "2", "3", "4", "5"].map((starString, index) => {
+            const starValue = index + 1;
+            return (
+              <TouchableOpacity
+                key={starString}
+                onPress={() => setRating(starValue)}
               >
-                ★
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={{
+                    fontSize: 34,
+                    color: starValue <= rating ? "#FACC15" : "#6B7280",
+                  }}
+                >
+                  ★
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <TextInput
@@ -515,6 +437,13 @@ export default function CourseDetail() {
           )}
         </View>
       </View>
+
+      <CommentsSection
+        courseId={id as string}
+        userId={user?.uid ?? "demo-user"}
+        userName={user?.displayName ?? "Student"}
+      />
+
     </ScrollView>
   );
 }
