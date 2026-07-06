@@ -2,7 +2,7 @@ import { Text, View } from "react-native";
 
 interface Props {
   title: string;
-  value: number;
+  value: number | string; // ✅ STEP 2B FIX: Union type allows both string and number inputs without compiler errors
   subtitle?: string;
   color?: string;
 }

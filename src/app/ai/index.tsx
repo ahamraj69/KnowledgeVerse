@@ -28,12 +28,16 @@ export default function AIScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    // ✅ FIX: Swapped out primitive reference listener with granular dependency guard tracking rules
+    if (!user?.uid) return;
 
     loadSuggestions();
-  }, [user]);
+  }, [user?.uid]);
 
+  // ✅ STEP 1 FIX: Added structured protection layer filtering execution threads (Removes TS18047)
   const loadSuggestions = async () => {
+    if (!user) return;
+
     try {
       setLoading(true);
 

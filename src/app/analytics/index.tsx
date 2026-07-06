@@ -28,12 +28,16 @@ export default function AnalyticsScreen() {
     useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    // ✅ FIX: Stabilised using user?.uid safety guard check
+    if (!user?.uid) return;
 
     loadAnalytics();
-  }, [user]);
+  }, [user?.uid]);
 
+  // ✅ STEP 2A FIX: Added strict user protection to filter execution threads cleanly (Removes 'user is possibly null')
   const loadAnalytics = async () => {
+    if (!user) return;
+
     try {
       setLoading(true);
 
@@ -107,12 +111,11 @@ export default function AnalyticsScreen() {
         color="#A855F7"
       />
 
+      {/* ✅ STEP 2A FIX: Repointed numeric parameter value with subtitle description to bypass compiler complaints */}
       <ProgressCard
         title="📈 Average Score"
-        value={`${analytics.averageScore.toFixed(
-          1
-        )}%`}
-        subtitle="Average quiz score"
+        value={analytics.averageScore}
+        subtitle={`${analytics.averageScore.toFixed(1)}% Average`}
         color="#F59E0B"
       />
 
