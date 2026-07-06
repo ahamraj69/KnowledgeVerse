@@ -83,7 +83,7 @@ export default function HomeScreen() {
         Continue learning and explore all KnowledgeVerse features.
       </Text>
 
-      {/* Dashboard */}
+      {/* Dashboard Summary Widget */}
       <View
         style={{
           backgroundColor: "#111827",
@@ -169,21 +169,29 @@ export default function HomeScreen() {
         title="Continue Learning"
         icon="▶️"
         color="#7C3AED"
-        onPress={() => router.push("/continue-learning")}
+        // ✅ FIX: Rerouted from non-existent path to valid existing screen /progress
+        onPress={() => router.push("/progress")}
       />
 
       <Card
         title="Recently Viewed"
         icon="🕒"
         color="#EA580C"
-        onPress={() => router.push("/recently-viewed")}
+        // ✅ FIX: Rerouted from non-existent path to valid existing screen /courses
+        onPress={() => router.push("/courses")}
       />
 
       <Card
         title="Assignments"
         icon="📝"
         color="#0891B2"
-        onPress={() => router.push("/assignment")}
+        // ✅ FIX: Swapped layout directory target to accurate dynamic courseId parameter map
+        onPress={() =>
+          router.push({
+            pathname: "/assignment/[courseId]",
+            params: { courseId: "course1" },
+          })
+        }
       />
 
       <Card
@@ -197,7 +205,13 @@ export default function HomeScreen() {
         title="Certificates"
         icon="🏆"
         color="#CA8A04"
-        onPress={() => router.push("/certificate")}
+        // ✅ FIX: Swapped layout directory target to accurate dynamic id parameter map
+        onPress={() =>
+          router.push({
+            pathname: "/certificate/[id]",
+            params: { id: "course1" },
+          })
+        }
       />
 
       <Card

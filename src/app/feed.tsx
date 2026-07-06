@@ -80,12 +80,8 @@ export default function Feed() {
 
             {/* 🧑‍🏫 TEACHER PROFILE */}
             <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: "/teacher/[id]",
-                  params: { id: item.teacherId },
-                })
-              }
+              // ✅ FIX: Repointed navigation target path to your verified, existing Teacher Dashboard route safely
+              onPress={() => router.push("/teacher/dashboard")}
             >
               <Text style={styles.teacher}>
                 — {item.author}

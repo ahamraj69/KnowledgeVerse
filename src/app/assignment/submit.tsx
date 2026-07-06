@@ -1,25 +1,23 @@
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { router, useLocalSearchParams } from "expo-router";
 
 import {
-    submitAssignment,
+  submitAssignment,
 } from "../../services/assignmentService";
 
 import { useAuth } from "../../context/AuthContext";
 
 export default function AssignmentSubmit() {
-  const { assignmentId, courseId } =
-    useLocalSearchParams();
-
+  const { assignmentId, courseId } = useLocalSearchParams();
   const { user } = useAuth();
 
   const [answer, setAnswer] = useState("");
@@ -36,13 +34,12 @@ export default function AssignmentSubmit() {
     try {
       setLoading(true);
 
-      await submitAssignment({
-        assignmentId: assignmentId as string,
-        courseId: courseId as string,
-        userId: user.uid,
-        answer,
-        status: "submitted",
-      });
+      // ✅ FIX: Realigned parameters perfectly to fit your structural 3-argument signature mapping sequence 
+      await submitAssignment(
+        assignmentId as string, // 1. assignmentId
+        user.uid,               // 2. userId
+        answer.trim()           // 3. fileUrl / content answer text
+      );
 
       Alert.alert(
         "Success",
@@ -52,7 +49,6 @@ export default function AssignmentSubmit() {
       router.back();
     } catch (e) {
       console.log(e);
-
       Alert.alert(
         "Error",
         "Failed to submit assignment"

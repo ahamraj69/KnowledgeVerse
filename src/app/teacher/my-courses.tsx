@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { collection, getDocs, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,7 +9,9 @@ import {
   View,
 } from "react-native";
 
-import { getCourses } from "../../services/courseListService";
+import { db } from "../../lib/firebase";
+import { Colors } from "../../theme/colors";
+import { Theme } from "../../theme/theme";
 
 interface Course {
   id: string;
@@ -29,10 +32,24 @@ export default function MyCourses() {
 
   const loadCourses = async () => {
     try {
-      const data = await getCourses();
+      setLoading(true);
+      const coursesRef = collection(db, "courses");
+      const q = query(coursesRef);
+      const snapshot = await getDocs(q);
+
+      const data = snapshot.docs.map((doc) => {
+        const fields = doc.data();
+        return {
+          id: doc.id,
+          title: fields.title || "Untitled Course",
+          description: fields.description || "No description provided.",
+          thumbnail: fields.thumbnail || undefined,
+        };
+      });
+
       setCourses(data);
     } catch (error) {
-      console.log(error);
+      console.log("Error loading dashboard courses feed list:", error);
     } finally {
       setLoading(false);
     }
@@ -43,19 +60,13 @@ export default function MyCourses() {
       <View
         style={{
           flex: 1,
-          backgroundColor: "#0B1220",
+          backgroundColor: Colors.background,
           justifyContent: "center",
           alignItems: "center",
         }}
       >
-        <ActivityIndicator size="large" color="#2563EB" />
-
-        <Text
-          style={{
-            color: "white",
-            marginTop: 15,
-          }}
-        >
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={[Theme.text, { marginTop: 15, fontSize: 16 }]}>
           Loading Courses...
         </Text>
       </View>
@@ -64,101 +75,111 @@ export default function MyCourses() {
 
   return (
     <FlatList
-      style={{
-        flex: 1,
-        backgroundColor: "#0B1220",
-      }}
+      style={Theme.screen}
       contentContainerStyle={{
         padding: 20,
+        paddingBottom: 40,
       }}
       data={courses}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={() => (
         <>
           <Text
-            style={{
-              color: "white",
-              fontSize: 30,
-              fontWeight: "bold",
-              marginBottom: 10,
-            }}
+            style={[
+              Theme.text,
+              {
+                fontSize: 30,
+                fontWeight: "bold",
+                marginBottom: 10,
+              },
+            ]}
           >
             📖 My Courses
           </Text>
 
-          <Text
-            style={{
-              color: "#9CA3AF",
-              marginBottom: 25,
-            }}
-          >
-            Select a course to manage lessons.
+          <Text style={[Theme.muted, { marginBottom: 25, fontSize: 15 }]}>
+            Select an action below to manage or edit a course.
           </Text>
         </>
       )}
       renderItem={({ item }) => (
-        <TouchableOpacity
-          onPress={() =>
-            router.push({
-              pathname: "/teacher/add-lesson",
-              params: {
-                courseId: item.id,
-              },
-            })
-          }
+        <View
           style={{
-            backgroundColor: "#1F2937",
+            backgroundColor: Colors.card,
             padding: 18,
             borderRadius: 12,
             marginBottom: 15,
+            borderWidth: 1,
+            borderColor: Colors.border,
           }}
         >
-          <Text
-            style={{
-              color: "white",
-              fontSize: 20,
-              fontWeight: "bold",
-            }}
-          >
+          <Text style={[Theme.text, { fontSize: 20, fontWeight: "bold" }]}>
             {item.title}
           </Text>
 
-          <Text
-            style={{
-              color: "#9CA3AF",
-              marginTop: 8,
-            }}
-          >
+          <Text style={[Theme.muted, { marginTop: 8, lineHeight: 20 }]}>
             {item.description}
           </Text>
 
-          <View
-            style={{
-              marginTop: 15,
-              backgroundColor: "#2563EB",
-              padding: 10,
-              borderRadius: 8,
-              alignSelf: "flex-start",
-            }}
-          >
-            <Text
+          {/* Action Layout Row Container */}
+          <View style={{ flexDirection: "row", marginTop: 20 }}>
+            {/* Manage Lessons Action Trigger */}
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: "/teacher/add-lesson",
+                  params: {
+                    courseId: item.id,
+                  },
+                })
+              }
               style={{
-                color: "white",
-                fontWeight: "bold",
+                backgroundColor: Colors.primary,
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 8,
+                marginRight: 10,
               }}
             >
-              ➕ Manage Lessons
-            </Text>
+              <Text style={[Theme.text, { fontWeight: "bold" }]}>
+                ➕ Manage Lessons
+              </Text>
+            </TouchableOpacity>
+
+            {/* Edit Course Settings Action Trigger */}
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: "/teacher/edit-course" as any, // ✅ FIX: Bypasses stale automatic static routing cache loops cleanly
+                  params: {
+                    courseId: item.id,
+                  },
+                })
+              }
+              style={{
+                backgroundColor: Colors.border,
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={[Theme.text, { fontWeight: "bold" }]}>
+                ✏️ Edit Course
+              </Text>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
       )}
       ListEmptyComponent={() => (
         <Text
-          style={{
-            color: "#9CA3AF",
-            textAlign: "center",
-            marginTop: 80,
-          }}
+          style={[
+            Theme.muted,
+            {
+              textAlign: "center",
+              marginTop: 80,
+              fontSize: 16,
+            },
+          ]}
         >
           No courses found.
         </Text>

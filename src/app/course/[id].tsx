@@ -49,8 +49,8 @@ import {
   addToWishlist,
 } from "../../services/wishlistService";
 
-import { Colors } from "../../theme/colors"; // ✅ Added central color system
-import { Theme } from "../../theme/theme"; // ✅ Added structural style system
+import { Colors } from "../../theme/colors";
+import { Theme } from "../../theme/theme";
 
 export default function CourseDetail() {
   const { id } = useLocalSearchParams();
@@ -86,9 +86,9 @@ export default function CourseDetail() {
       const data = await getLessons(id as string);
       setLessons(data);
 
-      // ✅ Strict length verification for safer evaluation
+      // ✅ Fix 1: Exact index targeting to avoid array-to-object type assignment errors
       if (data.length > 0) {
-        let lessonToOpen: Lesson | null = data.length ? data : null;
+        let lessonToOpen: Lesson | null = data.length > 0 ? data[0] : null;
 
         if (user) {
           const recent = await getContinueLearning(user.uid, id as string);
@@ -101,7 +101,8 @@ export default function CourseDetail() {
             if (found) {
               lessonToOpen = found;
             } else {
-              lessonToOpen = data.length ? data : null;
+              // ✅ Fix 2: Explicit element assignment fallback match
+              lessonToOpen = data.length > 0 ? data[0] : null;
             }
           }
         }
@@ -197,13 +198,20 @@ export default function CourseDetail() {
 
     try {
       setLoading(true);
-      const updated = await completeLesson(
+      
+      // ✅ Fix 3: Solved completeLesson return void by fetching fresh progress values downstream (TS1345)
+      await completeLesson(
         user.uid,
         id as string,
         lessonId
       );
 
-      const safeUpdated = updated || [];
+      const saved = await getProgress(
+        user.uid,
+        id as string
+      );
+
+      const safeUpdated = saved?.completedLessons ?? [];
 
       setCompletedLessons(safeUpdated);
 
@@ -260,7 +268,7 @@ export default function CourseDetail() {
 
   return (
     <ScrollView
-      style={Theme.screen} // ✅ Hooked into Theme Engine
+      style={Theme.screen} 
       contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
     >
       <CourseHeader
@@ -268,9 +276,12 @@ export default function CourseDetail() {
         description="Continue learning where you left off."
       />
 
+      {/* ✅ Fix 4: Remapped parameters to perfectly fit your upgraded unified ProgressCard contract */}
       <ProgressCard
-        progress={progress}
-        courseCompleted={courseCompleted}
+        title="📉 Course Progress"
+        value={progress}
+        subtitle={courseCompleted ? "🎉 Course Completed!" : `${progress}% Completed`}
+        color={Colors.primary}
       />
 
       {selectedLesson && (
@@ -305,7 +316,7 @@ export default function CourseDetail() {
           <TouchableOpacity
             onPress={openNotes}
             style={{
-              backgroundColor: Colors.primary, // ✅ Token Applied
+              backgroundColor: Colors.primary, 
               paddingVertical: 14,
               borderRadius: 12,
               marginTop: 15,
@@ -315,7 +326,7 @@ export default function CourseDetail() {
           >
             <Text
               style={[
-                Theme.text, // ✅ Unified Style Applied
+                Theme.text, 
                 {
                   fontWeight: "bold",
                   fontSize: 17,
@@ -328,7 +339,7 @@ export default function CourseDetail() {
 
           <Text
             style={[
-              Theme.text, // ✅ Unified Style Applied
+              Theme.text, 
               {
                 fontSize: 22,
                 fontWeight: "bold",
@@ -352,7 +363,7 @@ export default function CourseDetail() {
       <TouchableOpacity
         onPress={openAssignments}
         style={{
-          backgroundColor: Colors.success, // ✅ Token Applied
+          backgroundColor: Colors.success, 
           paddingVertical: 14,
           borderRadius: 12,
           marginTop: 25,
@@ -361,7 +372,7 @@ export default function CourseDetail() {
       >
         <Text
           style={[
-            Theme.text, // ✅ Unified Style Applied
+            Theme.text, 
             {
               fontWeight: "bold",
               fontSize: 16,
