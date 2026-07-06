@@ -1,7 +1,6 @@
-import { collection, getDocs, query } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
-// ✅ Step 3: Upgraded schema tracking configuration layer with strict status limits
 export interface CourseServiceType {
   id: string;
   title: string;
@@ -16,10 +15,8 @@ export interface CourseServiceType {
 export const getCourses = async (): Promise<CourseServiceType[]> => {
   const coursesRef = collection(db, "courses");
   const q = query(coursesRef);
-
   const snapshot = await getDocs(q);
 
-  // ✅ Step 4: Map full document entries with explicit lifecycle parameter fallbacks
   return snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
@@ -27,7 +24,26 @@ export const getCourses = async (): Promise<CourseServiceType[]> => {
       title: data.title || "Untitled Course",
       description: data.description || "No description provided.",
       thumbnail: data.thumbnail || undefined,
-      status: data.status || "draft", // Gracefully defaults to draft if missing from historical entries
+      status: data.status || "draft",
     };
   });
+};
+
+/**
+ * ✅ FETCHES A SINGLE COURSE: Targets an explicit course document profile by ID
+ */
+export const getCourse = async (courseId: string): Promise<CourseServiceType | null> => {
+  const docRef = doc(db, "courses", courseId);
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) return null;
+
+  const data = docSnap.data();
+  return {
+    id: docSnap.id,
+    title: data.title || "Untitled Course",
+    description: data.description || "No description provided.",
+    thumbnail: data.thumbnail || undefined,
+    status: data.status || "draft",
+  };
 };

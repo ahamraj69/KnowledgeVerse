@@ -4,6 +4,7 @@ import {
   Alert,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -18,6 +19,7 @@ import LessonList, {
 import ProgressCard from "../../components/ProgressCard";
 import PurchaseCard from "../../components/PurchaseCard";
 import QuizCard from "../../components/QuizCard";
+import ReviewCard from "../../components/ReviewCard";
 
 import { useAuth } from "../../context/AuthContext";
 import { useLoading } from "../../context/LoadingContext";
@@ -46,6 +48,12 @@ import {
   saveRecentlyViewed,
 } from "../../services/recentlyViewedService";
 import {
+  addReview,
+  getAverageRating,
+  getCourseReviews,
+  Review,
+} from "../../services/reviewService";
+import {
   addToWishlist,
 } from "../../services/wishlistService";
 
@@ -65,7 +73,11 @@ export default function CourseDetail() {
   const [progress, setProgress] = useState(0);
   const [courseCompleted, setCourseCompleted] = useState(false);
 
-  // ✅ Optimised dependency loop prevention
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [rating, setRating] = useState(5);
+  const [reviewText, setReviewText] = useState("");
+  const [averageRating, setAverageRating] = useState(0);
+
   useEffect(() => {
     if (!id) return;
 
@@ -86,9 +98,8 @@ export default function CourseDetail() {
       const data = await getLessons(id as string);
       setLessons(data);
 
-      // ✅ Fix 1: Exact index targeting to avoid array-to-object type assignment errors
       if (data.length > 0) {
-        let lessonToOpen: Lesson | null = data.length > 0 ? data[0] : null;
+        let lessonToOpen: Lesson | null = data[0];
 
         if (user) {
           const recent = await getContinueLearning(user.uid, id as string);
@@ -100,9 +111,6 @@ export default function CourseDetail() {
 
             if (found) {
               lessonToOpen = found;
-            } else {
-              // ✅ Fix 2: Explicit element assignment fallback match
-              lessonToOpen = data.length > 0 ? data[0] : null;
             }
           }
         }
@@ -131,6 +139,11 @@ export default function CourseDetail() {
           (saved?.completedLessons?.length || 0) === totalLessons
         );
       }
+
+      const reviewData = await getCourseReviews(id as string);
+      setReviews(reviewData);
+      setAverageRating(getAverageRating(reviewData));
+
     } catch (e) {
       console.log(e);
     } finally {
@@ -199,7 +212,6 @@ export default function CourseDetail() {
     try {
       setLoading(true);
       
-      // ✅ Fix 3: Solved completeLesson return void by fetching fresh progress values downstream (TS1345)
       await completeLesson(
         user.uid,
         id as string,
@@ -228,7 +240,6 @@ export default function CourseDetail() {
 
       setCourseCompleted(completed);
 
-      // ✅ Automatically generate certificate
       if (completed) {
         const existing = await getCertificate(
           user.uid,
@@ -256,6 +267,36 @@ export default function CourseDetail() {
     }
   };
 
+  const submitReview = async () => {
+    if (!user) return;
+
+    if (!reviewText.trim()) {
+      Alert.alert(
+        "Review Required",
+        "Please write a review."
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await addReview({
+        courseId: id as string,
+        userId: user.uid,
+        userName: user.displayName || "Student",
+        rating,
+        review: reviewText.trim(),
+      });
+
+      Alert.alert("Success", "Review submitted.");
+      setReviewText("");
+      await loadCourse();
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
   if (!access) {
     return (
       <PurchaseCard
@@ -276,7 +317,6 @@ export default function CourseDetail() {
         description="Continue learning where you left off."
       />
 
-      {/* ✅ Fix 4: Remapped parameters to perfectly fit your upgraded unified ProgressCard contract */}
       <ProgressCard
         title="📉 Course Progress"
         value={progress}
@@ -324,33 +364,26 @@ export default function CourseDetail() {
               alignItems: "center",
             }}
           >
-            <Text
-              style={[
-                Theme.text, 
-                {
-                  fontWeight: "bold",
-                  fontSize: 17,
-                },
-              ]}
-            >
+            <Text style={{ color: "white", fontWeight: "bold", fontSize: 17 }}>
               📝 Open Lesson Notes
             </Text>
           </TouchableOpacity>
-
-          <Text
-            style={[
-              Theme.text, 
-              {
-                fontSize: 22,
-                fontWeight: "bold",
-                marginBottom: 15,
-              },
-            ]}
-          >
-            Lessons
-          </Text>
         </>
       )}
+
+      <Text
+        style={[
+          Theme.text, 
+          {
+            fontSize: 22,
+            fontWeight: "bold",
+            marginBottom: 15,
+            marginTop: 10,
+          },
+        ]}
+      >
+        Lessons
+      </Text>
 
       <LessonList
         lessons={lessons}
@@ -363,25 +396,125 @@ export default function CourseDetail() {
       <TouchableOpacity
         onPress={openAssignments}
         style={{
-          backgroundColor: Colors.success, 
+          backgroundColor: Colors.success,
           paddingVertical: 14,
           borderRadius: 12,
           marginTop: 25,
+          marginBottom: 10,
           alignItems: "center",
         }}
       >
         <Text
-          style={[
-            Theme.text, 
-            {
-              fontWeight: "bold",
-              fontSize: 16,
-            },
-          ]}
+          style={{
+            color: "white",
+            fontWeight: "bold",
+            fontSize: 16,
+          }}
         >
-          📝 View Assignments
+          📄 View Assignments
         </Text>
       </TouchableOpacity>
+
+      {/* Ratings & Reviews */}
+      <View
+        style={{
+          marginTop: 30,
+          backgroundColor: "#111827",
+          borderRadius: 15,
+          padding: 18,
+        }}
+      >
+        <Text
+          style={{
+            color: "white",
+            fontSize: 22,
+            fontWeight: "bold",
+            marginBottom: 20,
+          }}
+        >
+          ⭐ Ratings & Reviews
+        </Text>
+
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginBottom: 20,
+          }}
+        >
+          {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => (
+            <TouchableOpacity
+              key={star}
+              onPress={() => setRating(star)}
+            >
+              <Text
+                style={{
+                  fontSize: 34,
+                  color: star <= rating ? "#FACC15" : "#6B7280",
+                }}
+              >
+                ★
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TextInput
+          value={reviewText}
+          onChangeText={setReviewText}
+          placeholder="Write your review..."
+          placeholderTextColor="#9CA3AF"
+          multiline
+          style={{
+            backgroundColor: "#1F2937",
+            color: "white",
+            borderRadius: 10,
+            padding: 14,
+            minHeight: 110,
+            textAlignVertical: "top",
+          }}
+        />
+
+        <TouchableOpacity
+          onPress={submitReview}
+          style={{
+            marginTop: 18,
+            backgroundColor: "#2563EB",
+            padding: 14,
+            borderRadius: 10,
+            alignItems: "center",
+          }}
+        >
+          <Text
+            style={{
+              color: "white",
+              fontWeight: "bold",
+            }}
+          >
+            Submit Review
+          </Text>
+        </TouchableOpacity>
+
+        <View style={{ marginTop: 25 }}>
+          {reviews.length === 0 ? (
+            <Text
+              style={{
+                color: "#9CA3AF",
+                textAlign: "center",
+              }}
+            >
+              No reviews yet.
+            </Text>
+          ) : (
+            reviews.map((item) => (
+              <ReviewCard
+                key={item.id || Math.random().toString()}
+                review={item}
+              />
+            ))
+          )}
+        </View>
+      </View>
     </ScrollView>
   );
 }
