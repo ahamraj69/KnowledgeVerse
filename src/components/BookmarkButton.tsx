@@ -1,17 +1,10 @@
 import { useEffect, useState } from "react";
-import {
-    ActivityIndicator,
-    Alert,
-    Text,
-    TouchableOpacity,
-} from "react-native";
-
+import { Text, TouchableOpacity } from "react-native";
 import { useAuth } from "../context/AuthContext";
-
 import {
-    addBookmark,
-    getBookmarkByLesson,
-    removeBookmark,
+  addBookmark,
+  getBookmarkByLesson,
+  removeBookmark
 } from "../services/bookmarkService";
 
 interface Props {
@@ -25,119 +18,64 @@ export default function BookmarkButton({
   lessonId,
   lessonTitle,
 }: Props) {
+  // ✅ FIX: Injected active 'user' object context cleanly into your component scope
   const { user } = useAuth();
-
-  const [loading, setLoading] = useState(true);
   const [bookmarkId, setBookmarkId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user?.uid) return;
 
-    loadBookmark();
-  }, [user, lessonId]);
-
-  const loadBookmark = async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-
-      const bookmark = await getBookmarkByLesson(
-        user.uid,
-        lessonId
-      );
-
-      if (bookmark) {
-        setBookmarkId(bookmark.id!);
-      } else {
-        setBookmarkId(null);
+    const checkStatus = async () => {
+      try {
+        const item = await getBookmarkByLesson(user.uid, lessonId);
+        if (item) {
+          setBookmarkId(lessonId);
+        } else {
+          setBookmarkId(null);
+        }
+      } catch (e) {
+        console.log(e);
       }
-    } catch (e) {
-      console.log(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    checkStatus();
+  }, [user?.uid, lessonId]);
 
   const toggleBookmark = async () => {
-    if (!user) return;
+    if (!user?.uid) return;
 
     try {
-      setLoading(true);
-
       if (bookmarkId) {
-        await removeBookmark(
-          user.uid,
-          bookmarkId
-        );
-
+        await removeBookmark(user.uid, lessonId);
         setBookmarkId(null);
-
-        Alert.alert(
-          "Bookmark Removed",
-          "Lesson removed from bookmarks."
-        );
       } else {
-        const id = await addBookmark(
-          user.uid,
+        await addBookmark(user.uid, {
           courseId,
           lessonId,
-          lessonTitle
-        );
-
-        setBookmarkId(id);
-
-        Alert.alert(
-          "Bookmarked",
-          "Lesson added to bookmarks."
-        );
+          lessonTitle,
+        });
+        setBookmarkId(lessonId); 
       }
     } catch (e) {
       console.log(e);
-
-      Alert.alert(
-        "Error",
-        "Unable to update bookmark."
-      );
-    } finally {
-      setLoading(false);
     }
   };
-
-  if (loading) {
-    return (
-      <ActivityIndicator
-        color="#FBBF24"
-      />
-    );
-  }
 
   return (
     <TouchableOpacity
       onPress={toggleBookmark}
       style={{
-        backgroundColor: bookmarkId
-          ? "#F59E0B"
-          : "#374151",
-        paddingVertical: 12,
-        borderRadius: 12,
+        flexDirection: "row",
         alignItems: "center",
-        marginVertical: 10,
+        backgroundColor: "#1F2937",
+        padding: 12,
+        borderRadius: 10,
+        marginTop: 10,
+        justifyContent: "center",
       }}
     >
-      <Text
-        style={{
-          color: "white",
-          fontWeight: "bold",
-          fontSize: 16,
-        }}
-      >
-        {bookmarkId
-          ? "⭐ Bookmarked"
-          : "☆ Add Bookmark"}
+      <Text style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>
+        {bookmarkId ? "❤️ Saved to Bookmarks" : "🖤 Bookmark Lesson"}
       </Text>
     </TouchableOpacity>
   );

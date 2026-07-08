@@ -9,13 +9,18 @@ import {
   View,
 } from "react-native";
 
-import CommentsSection from "../../components/comments/CommentsSection";
+import BookmarkButton from "../../components/BookmarkButton";
 import CourseHeader from "../../components/CourseHeader";
-import {
+import CoursePlayer from "../../components/CoursePlayer";
+import DownloadButton from "../../components/DownloadButton";
+import LessonList, {
   Lesson,
 } from "../../components/LessonList";
+import ProgressCard from "../../components/ProgressCard";
 import PurchaseCard from "../../components/PurchaseCard";
+import QuizCard from "../../components/QuizCard";
 import ReviewCard from "../../components/ReviewCard";
+import CommentsSection from "../../components/comments/CommentsSection";
 
 import { useAuth } from "../../context/AuthContext";
 import { useLoading } from "../../context/LoadingContext";
@@ -94,8 +99,9 @@ export default function CourseDetail() {
       const data = await getLessons(id as string);
       setLessons(data);
 
-       if (data.length > 0) {
-        let lessonToOpen: Lesson | null = data[0]; // Safely picks the first lesson object
+           if (data.length > 0) {
+        let lessonToOpen: Lesson | null = data[0]; // ✅ FIXED: Explicitly assigns the first lesson object inside the array list
+
 
         if (user) {
           const recent = await getContinueLearning(user.uid, id as string);
@@ -115,6 +121,7 @@ export default function CourseDetail() {
       } else {
         setSelectedLesson(null);
       }
+
       if (user) {
         const saved = await getProgress(user.uid, id as string);
 
@@ -193,7 +200,7 @@ export default function CourseDetail() {
 
   const wishlist = async () => {
     try {
-      await addToWishlist(id as string);
+      await addToWishlist(user?.uid || "demo-user", id as string);
       Alert.alert("Wishlist", "Course added successfully ❤️");
     } catch (e) {
       console.log(e);
@@ -303,7 +310,7 @@ export default function CourseDetail() {
     );
   }
 
-  return (
+    return (
     <ScrollView
       style={Theme.screen} 
       contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
@@ -311,8 +318,82 @@ export default function CourseDetail() {
       <CourseHeader
         title="🎓 Course Lessons"
         description="Continue learning where you left off."
-         />
-                  <TouchableOpacity
+      />
+
+      <ProgressCard
+        title="📉 Course Progress"
+        value={progress}
+        subtitle={courseCompleted ? "🎉 Course Completed!" : `${progress}% Completed`}
+        color={Colors.primary}
+      />
+
+      {selectedLesson && (
+        <View style={{ marginBottom: 10 }}>
+          <CoursePlayer
+            title={selectedLesson.title}
+            description={selectedLesson.description}
+            videoUrl={selectedLesson.videoUrl}
+            pdfUrl={selectedLesson.pdfUrl}
+          />
+
+          <BookmarkButton
+            courseId={id as string}
+            lessonId={selectedLesson.id}
+            lessonTitle={selectedLesson.title}
+          />
+
+          <DownloadButton
+            courseId={id as string}
+            lessonId={selectedLesson.id}
+            lessonTitle={selectedLesson.title}
+          />
+
+          <QuizCard
+            lessonId={selectedLesson.id}
+            onStart={startQuiz}
+          />
+
+          <TouchableOpacity
+            onPress={openNotes}
+            style={{
+              backgroundColor: Colors.primary, 
+              paddingVertical: 14,
+              borderRadius: 12,
+              marginTop: 15,
+              marginBottom: 20,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "bold", fontSize: 17 }}>
+              📝 Open Lesson Notes
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <Text
+        style={[
+          Theme.text, 
+          {
+            fontSize: 22,
+            fontWeight: "bold",
+            marginBottom: 15,
+            marginTop: 10,
+          },
+        ]}
+      >
+        Lessons
+      </Text>
+
+      <LessonList
+        lessons={lessons}
+        selectedLesson={selectedLesson}
+        completedLessons={completedLessons}
+        onSelectLesson={openLesson}
+        onCompleteLesson={markCompleted}
+      />
+
+      <TouchableOpacity
         onPress={openAssignments}
         style={{
           backgroundColor: Colors.success,
@@ -361,24 +442,21 @@ export default function CourseDetail() {
             marginBottom: 20,
           }}
         >
-          {["1", "2", "3", "4", "5"].map((starString, index) => {
-            const starValue = index + 1;
-            return (
-              <TouchableOpacity
-                key={starString}
-                onPress={() => setRating(starValue)}
-              >
-                <Text
-                  style={{
-                    fontSize: 34,
-                    color: starValue <= rating ? "#FACC15" : "#6B7280",
-                  }}
-                >
-                  ★
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+          <TouchableOpacity onPress={() => setRating(1)}>
+            <Text style={{ fontSize: 34, color: 1 <= rating ? "#FACC15" : "#6B7280" }}>★</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setRating(2)}>
+            <Text style={{ fontSize: 34, color: 2 <= rating ? "#FACC15" : "#6B7280" }}>★</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setRating(3)}>
+            <Text style={{ fontSize: 34, color: 3 <= rating ? "#FACC15" : "#6B7280" }}>★</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setRating(4)}>
+            <Text style={{ fontSize: 34, color: 4 <= rating ? "#FACC15" : "#6B7280" }}>★</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setRating(5)}>
+            <Text style={{ fontSize: 34, color: 5 <= rating ? "#FACC15" : "#6B7280" }}>★</Text>
+          </TouchableOpacity>
         </View>
 
         <TextInput

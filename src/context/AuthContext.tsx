@@ -1,4 +1,9 @@
 import {
+  onAuthStateChanged,
+  signOut,
+  User,
+} from "firebase/auth";
+import {
   createContext,
   ReactNode,
   useContext,
@@ -6,74 +11,71 @@ import {
   useState,
 } from "react";
 
-import {
-  onAuthStateChanged,
-  signOut,
-  User,
-} from "firebase/auth";
 import { auth } from "../lib/firebase";
 
-/**
- * 🔐 Auth Context Type
- */
 type AuthContextType = {
   user: User | null;
   loading: boolean;
   logout: () => Promise<void>;
 };
 
-/**
- * 🧠 Create Context
- */
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(
+  undefined
+);
 
-/**
- * 🚀 Provider Component
- */
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider = ({
+  children,
+}: {
+  children: ReactNode;
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  /**
-   * 👀 Listen to login state changes (Optimized with strict explicit cleanup wrapper)
-   */
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
+    // ✅ Phase 2: Added error handler to stop loading state even if connection fails
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (currentUser) => {
+        setUser(currentUser);
+        setLoading(false); 
+      },
+      (error) => {
+        console.log("Authentication state evaluation anomaly caught:", error);
+        setUser(null);
+        setLoading(false); 
+      }
+    );
 
-    // ✅ FIX: Strict explicit unsubscribe invoke safely unmounts listeners
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
-  /**
-   * 🚪 Logout function
-   */
   const logout = async () => {
     try {
       await signOut(auth);
     } catch (error) {
-      console.log("Logout error:", error);
+      console.log("Error during logout session execution:", error);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-/**
- * 📌 Custom Hook
- */
 export const useAuth = () => {
   const context = useContext(AuthContext);
-
   if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider");
+    throw new Error(
+      "useAuth must be used inside AuthProvider"
+    );
   }
-
   return context;
 };

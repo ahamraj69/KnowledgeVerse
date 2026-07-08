@@ -3,78 +3,56 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDocs,
+  onSnapshot,
   orderBy,
   query,
-  updateDoc,
+  updateDoc
 } from "firebase/firestore";
 
 import { db } from "../lib/firebase";
 import { ForumPost } from "../types/forum";
 
-const forumCollection = collection(db, "forum");
+const getForumCollection = () => collection(db, "forum");
 
 /**
- * Create a new discussion post.
+ * ✅ Phase 19: Establishes a real-time reactive pipeline to capture live forum streams.
  */
-export const createForumPost = async (
-  post: Omit<ForumPost, "id">
-): Promise<void> => {
-  await addDoc(forumCollection, post);
-};
-
-/**
- * Fetch all discussion posts.
- */
-export const getForumPosts = async (): Promise<ForumPost[]> => {
+export const subscribeToForumPosts = (
+  callback: (posts: ForumPost[]) => void
+) => {
   const q = query(
-    forumCollection,
+    getForumCollection(),
     orderBy("createdAt", "desc")
   );
 
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((docItem) => ({
-    id: docItem.id,
-    ...(docItem.data() as Omit<ForumPost, "id">),
-  })) as ForumPost[];
-};
-
-/**
- * Update a forum post.
- */
-export const updateForumPost = async (
-  id: string,
-  data: Partial<ForumPost>
-): Promise<void> => {
-  await updateDoc(
-    doc(db, "forum", id),
-    data
-  );
-};
-
-/**
- * ✅ ADDED: Increments the like counter attribute for an explicit forum post document.
- */
-export const likeForumPost = async (
-  postId: string,
-  currentLikes: number
-): Promise<void> => {
-  await updateDoc(
-    doc(db, "forum", postId),
-    {
-      likes: currentLikes + 1,
+  // Returns the native unbind execution hook to prevent active leaks
+  return onSnapshot(
+    q, 
+    (snapshot) => {
+      const posts = snapshot.docs.map((docItem) => ({
+        id: docItem.id,
+        ...(docItem.data() as Omit<ForumPost, "id">),
+      })) as ForumPost[];
+      callback(posts);
+    },
+    (error) => {
+      console.log("Real-time forum listener broadcast blocked:", error);
     }
   );
 };
 
-/**
- * Delete a forum post.
- */
-export const deleteForumPost = async (
-  id: string
-): Promise<void> => {
-  await deleteDoc(
-    doc(db, "forum", id)
-  );
+export const createForumPost = async (post: Omit<ForumPost, "id">): Promise<void> => {
+  await addDoc(getForumCollection(), post);
+};
+
+export const updateForumPost = async (id: string, data: Partial<ForumPost>): Promise<void> => {
+  await updateDoc(doc(db, "forum", id), data);
+};
+
+export const likeForumPost = async (postId: string, currentLikes: number): Promise<void> => {
+  await updateDoc(doc(db, "forum", postId), { likes: currentLikes + 1 });
+};
+
+export const deleteForumPost = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, "forum", id));
 };

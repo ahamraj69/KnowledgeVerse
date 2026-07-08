@@ -1,28 +1,19 @@
-import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useFocusEffect } from "expo-router";
+import { memo, useCallback, useState } from "react";
+import { Alert, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import EmptyState from "../../components/EmptyState"; // ✅ Phase 23.2 Import
 import CreatePostModal from "../../components/forum/CreatePostModal";
 import ForumPostCard from "../../components/forum/ForumPostCard";
+import SkeletonCard from "../../components/SkeletonCard"; // ✅ Phase 23.1 Import
 import { useAuth } from "../../context/AuthContext";
-import {
-  createForumPost,
-  deleteForumPost,
-  getForumPosts,
-  likeForumPost,
-} from "../../services/forumService";
+import { useNetwork } from "../../context/NetworkContext";
+import { createForumPost, deleteForumPost, likeForumPost, subscribeToForumPosts } from "../../services/forumService";
 import { ForumPost } from "../../types/forum";
 
-export default function DiscussionForumScreen() {
+function DiscussionForumScreen() {
   const { user } = useAuth();
+  const { isConnected } = useNetwork();
   
   const userId = user?.uid || "demo-user";
   const userName = user?.displayName || "Student";
@@ -30,105 +21,87 @@ export default function DiscussionForumScreen() {
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [likedPosts, setLikedPosts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false); // ✅ Phase 23.3
   const [modalVisible, setModalVisible] = useState(false);
 
-  const loadPosts = async () => {
-    try {
-      setLoading(true);
-      const data = await getForumPosts();
-      setPosts(data);
-    } catch (error) {
-      console.log("Error loading forum database nodes:", error);
-    } finally {
+  // Unified data listener stream registration loop
+  const connectListener = useCallback(() => {
+    return subscribeToForumPosts((livePosts) => {
+      setPosts(livePosts);
       setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadPosts();
+      setRefreshing(false);
+    });
   }, []);
 
-  const onRefresh = async () => {
-    try {
-      setRefreshing(true);
-      const data = await getForumPosts();
-      setPosts(data);
-    } catch (error) {
-      console.log("Pull refresh cycle failure:", error);
-    } finally {
-      setRefreshing(false);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      const unsubscribe = connectListener();
+      return () => unsubscribe();
+    }, [connectListener])
+  );
+
+  // ✅ Phase 23.3: Native Swipe pull to refresh execution loop handler
+  const onRefresh = useCallback(async () => {
+    if (!isConnected) {
+      Alert.alert("Offline Mode", "Cannot sync dynamic cloud threads while disconnected.");
+      return;
     }
-  };
+    setRefreshing(true);
+    const unsubscribe = connectListener();
+    setTimeout(() => {
+      unsubscribe();
+      setRefreshing(false);
+    }, 1500); // Fail-safe fallback timeout guard
+  }, [isConnected, connectListener]);
 
-  const handleCreate = async (
-    title: string,
-    content: string
-  ) => {
-    await createForumPost({
-      userId,
-      userName,
-      title,
-      content,
-      createdAt: Date.now(),
-      likes: 0,
-      replies: 0,
-    });
+  const handleCreate = useCallback(async (title: string, content: string) => {
+    if (!isConnected) {
+      Alert.alert("Something went wrong", "Please verify your device connection settings.");
+      return;
+    }
+    await createForumPost({ userId, userName, title, content, createdAt: Date.now(), likes: 0, replies: 0 });
+    setModalVisible(false);
+  }, [isConnected, userId, userName]);
 
-    await loadPosts();
-  };
+  const handleDelete = useCallback((id: string) => {
+    if (!isConnected) {
+      Alert.alert("Something went wrong", "Please try again when online.");
+      return;
+    }
+    Alert.alert("Delete Post", "Are you sure you want to delete this discussion?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: async () => { await deleteForumPost(id); } }
+    ]);
+  }, [isConnected]);
 
-  const handleDelete = (id: string) => {
-    Alert.alert(
-      "Delete Post",
-      "Are you sure you want to delete this discussion?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteForumPost(id);
-              await loadPosts();
-            } catch (error) {
-              console.log("Delete failed:", error);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleLike = async (
-    id: string,
-    likes: number
-  ) => {
-    if (likedPosts.includes(id)) return;
-
+  const handleLike = useCallback(async (id: string, likes: number) => {
+    if (!isConnected || likedPosts.includes(id)) return;
     try {
       await likeForumPost(id, likes);
-      setLikedPosts((prev) => [...prev, id]);
-      await loadPosts();
-    } catch (error) {
-      console.log("Error liking post:", error);
+      setLikedPosts(prev => [...prev, id]);
+    } catch (e) {
+      console.log(e);
     }
-  };
+  }, [isConnected, likedPosts]);
 
+  const renderItem = useCallback(({ item }: { item: ForumPost }) => (
+    <ForumPostCard 
+      post={item} 
+      currentUserId={userId} 
+      onDelete={() => handleDelete(item.id)} 
+      onLike={() => handleLike(item.id, item.likes)} 
+    />
+  ), [userId, handleDelete, handleLike]);
+
+  // ✅ Phase 23.1: Clean multi-card wireframe skeleton masking loaders look beautiful
   if (loading && !refreshing) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#0F172A",
-        }}
-      >
-        <ActivityIndicator size="large" color="#2563EB" />
+      <View style={styles.container}>
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
       </View>
     );
   }
@@ -138,105 +111,43 @@ export default function DiscussionForumScreen() {
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ForumPostCard
-            post={item}
-            currentUserId={userId}
-            onDelete={() => handleDelete(item.id)}
-            onLike={() => handleLike(item.id, item.likes)}
-          />
-        )}
+        renderItem={renderItem}
+        removeClippedSubviews={true}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        // ✅ Phase 23.3: Injected core refresh configurations wrapper block
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#2563EB"
-            colors={["#2563EB"]}
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor="#2563EB" 
+            colors={["#2563EB"]} 
           />
         }
+        // ✅ Phase 23.2: Replaced boring text nodes with high-utility EmptyState configurations
         ListEmptyComponent={
-          <View
-            style={{
-              marginTop: 80,
-              alignItems: "center",
-              paddingHorizontal: 20,
-            }}
-          >
-            <Text
-              style={{
-                color: "white",
-                fontSize: 22,
-                fontWeight: "bold",
-                marginTop: 15,
-                textAlign: "center",
-              }}
-            >
-              No discussions yet
-            </Text>
-
-            <Text
-              style={{
-                color: "#9CA3AF",
-                marginTop: 8,
-                textAlign: "center",
-                fontSize: 15,
-                lineHeight: 22,
-              }}
-            >
-              Be the first student to start a discussion.
-            </Text>
-          </View>
+          <EmptyState 
+            icon="💬" 
+            title="No Discussions Yet" 
+            subtitle="Be the first student to launch a new discussion stream pipeline! 🚀" 
+          />
         }
-        contentContainerStyle={{
-          paddingBottom: 100, // Safe padding spacer block so content doesn't hide behind floating button
-          flexGrow: 1,
-        }}
+        contentContainerStyle={styles.list}
       />
-
-      {/* ✅ Step 4 — Styled Floating Action Button Widget */}
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={() => setModalVisible(true)}
-        activeOpacity={0.8}
-      >
+      <TouchableOpacity style={styles.floatingButton} onPress={() => setModalVisible(true)}>
         <Text style={styles.floatingButtonText}>+</Text>
       </TouchableOpacity>
-
-      <CreatePostModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onSubmit={handleCreate}
-      />
+      <CreatePostModal visible={modalVisible} onClose={() => setModalVisible(false)} onSubmit={handleCreate} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0F172A",
-    padding: 16,
-  },
-  floatingButton: {
-    position: "absolute",
-    bottom: 25,
-    right: 20,
-    backgroundColor: "#2563EB",
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  floatingButtonText: {
-    color: "white",
-    fontSize: 34,
-    fontWeight: "bold",
-    marginTop: -3, // Micro alignment adjustment for perfect center font tracking
-  },
+  container: { flex: 1, backgroundColor: "#0F172A", padding: 16 },
+  list: { paddingBottom: 100, flexGrow: 1 },
+  floatingButton: { position: "absolute", bottom: 25, right: 20, backgroundColor: "#2563EB", width: 62, height: 62, borderRadius: 31, justifyContent: "center", alignItems: "center", elevation: 8 },
+  floatingButtonText: { color: "white", fontSize: 34, fontWeight: "bold" }
 });
+
+export default memo(DiscussionForumScreen);

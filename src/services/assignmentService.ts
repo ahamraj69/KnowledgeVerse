@@ -1,60 +1,42 @@
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, query, where, addDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { getCache, setCache } from "./cache";
+import { getCache, setCache, clearCache } from "./cache";
 
-// ✅ STEP 3 FIX: Added the missing interface model definition to prevent compilation gaps
 export interface Assignment {
   id: string;
-  title?: string;
-  description?: string;
   courseId: string;
+  title: string;
+  description: string;
   dueDate?: string;
+  totalPoints?: number;
 }
 
-export const getAssignments = async (courseId: string): Promise<Assignment[]> => {
-  const cacheKey = `assignments_${courseId}`;
+const getAssignmentsCacheKey = (courseId: string) => `assignments_course_${courseId}`;
 
-  const cached = getCache(cacheKey);
+export const getAssignmentsByCourse = async (courseId: string): Promise<Assignment[]> => {
+  const cacheKey = getAssignmentsCacheKey(courseId);
+  const cached = getCache<Assignment[]>(cacheKey);
   if (cached) return cached;
 
-  const q = query(
-    collection(db, "assignments"),
-    where("courseId", "==", courseId)
-  );
-
-  const snapshot = await getDocs(q);
-
-  const data = snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Omit<Assignment, "id">),
+  const snapshot = await getDocs(query(collection(db, "assignments"), where("courseId", "==", courseId)));
+  const assignments = snapshot.docs.map((docItem) => ({
+    id: docItem.id,
+    courseId: docItem.data().courseId,
+    title: docItem.data().title || "Untitled Assignment",
+    description: docItem.data().description || "No description provided.",
   }));
 
-  setCache(cacheKey, data);
-
-  return data;
+  setCache(cacheKey, assignments);
+  return assignments;
 };
 
-// ✅ STEP 3 FIX: Exported missing submission handler functions safely 
-export async function submitAssignment(
-  assignmentId: string,
-  userId: string,
-  fileUrl: string
-): Promise<boolean> {
-  console.log(
-    "Submitting assignment:",
-    assignmentId,
+// ✅ ADDED ALIAS EXPORTS FOR SCREEN COMPATIBILITY
+export const getAssignments = getAssignmentsByCourse;
+
+export const submitAssignment = async (userId: string, data: any): Promise<void> => {
+  await addDoc(collection(db, "submissions"), {
     userId,
-    fileUrl
-  );
-
-  return true;
-}
-
-// ✅ STEP 3 FIX: Exported missing telemetry evaluation history array bridges cleanly
-export async function getUserSubmissions(
-  userId: string
-): Promise<any[]> {
-  console.log("Loading submissions:", userId);
-
-  return [];
-}
+    ...data,
+    submittedAt: Date.now()
+  });
+};

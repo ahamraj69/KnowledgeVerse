@@ -1,44 +1,37 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, deleteDoc, doc, onSnapshot, setDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
-import { auth, db } from "../lib/firebase"; // ✅ FIX: Points to src/lib/firebase
+// ✅ FIXED: Export interface contract signature explicitly
+export interface WishlistItem {
+  id: string;
+  courseId: string;
+}
 
-export const addToWishlist = async (courseId: string) => {
-  const user = auth.currentUser;
+/**
+ * Real-time listener for monitoring changes to the user's wishlist.
+ */
+export const subscribeToWishlist = (
+  userId: string,
+  callback: (items: WishlistItem[]) => void
+) => {
+  const q = collection(db, "users", userId, "wishlist");
 
-  if (!user) throw new Error("Not logged in");
-
-  await addDoc(collection(db, "wishlist"), {
-    userId: user.uid,
-    courseId,
-  });
-};
-
-export const removeFromWishlist = async (wishlistId: string) => {
-  await deleteDoc(doc(db, "wishlist", wishlistId));
-};
-
-export const getWishlist = async () => {
-  const user = auth.currentUser;
-
-  if (!user) return [];
-
-  const q = query(
-    collection(db, "wishlist"),
-    where("userId", "==", user.uid)
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as WishlistItem));
+      callback(items);
+    },
+    (error) => {
+      console.log("Real-time wishlist subscription error:", error);
+    }
   );
+};
 
-  const snapshot = await getDocs(q);
+export const addToWishlist = async (userId: string, courseId: string): Promise<void> => {
+  await setDoc(doc(db, "users", userId, "wishlist", courseId), { courseId });
+};
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
+export const removeFromWishlist = async (userId: string, courseId: string): Promise<void> => {
+  await deleteDoc(doc(db, "users", userId, "wishlist", courseId));
 };

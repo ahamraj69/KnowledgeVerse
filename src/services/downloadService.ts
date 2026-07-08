@@ -1,82 +1,49 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { collection, deleteDoc, doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 export interface DownloadItem {
   id: string;
   courseId: string;
   lessonId: string;
   lessonTitle: string;
-  videoUrl: string;
-  downloadedAt: number;
+  downloadedAt?: number;
 }
 
 /**
- * Storage Key
+ * Real-time subscription matrix tracking active download tasks.
  */
-const DOWNLOAD_KEY = "downloads";
-
-/**
- * Get all downloads
- */
-export const getDownloads = async (): Promise<
-  DownloadItem[]
-> => {
-  const data = await AsyncStorage.getItem(DOWNLOAD_KEY);
-  return data ? JSON.parse(data) : [];
-};
-
-/**
- * Add download
- */
-export const addDownload = async (
-  item: DownloadItem
+export const subscribeToDownloads = (
+  userId: string,
+  callback: (downloads: DownloadItem[]) => void
 ) => {
-  const existing = await getDownloads();
+  const q = collection(db, "users", userId, "downloads");
 
-  const updated = [
-    ...existing,
-    {
-      ...item,
-      downloadedAt: Date.now(),
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const downloads = snapshot.docs.map(d => ({ 
+        id: d.id, 
+        ...d.data(),
+        downloadedAt: d.data().downloadedAt || Date.now()
+      } as DownloadItem));
+      callback(downloads);
     },
-  ];
-
-  await AsyncStorage.setItem(
-    DOWNLOAD_KEY,
-    JSON.stringify(updated)
+    (error) => {
+      console.log("Real-time downloads subscription error:", error);
+    }
   );
-
-  return updated;
 };
 
-/**
- * Remove download
- */
-export const removeDownload = async (
-  lessonId: string
-) => {
-  const existing = await getDownloads();
-
-  const updated = existing.filter(
-    (item) => item.lessonId !== lessonId
-  );
-
-  await AsyncStorage.setItem(
-    DOWNLOAD_KEY,
-    JSON.stringify(updated)
-  );
-
-  return updated;
+// ✅ FIXED: Enforced global Promise wrapper configuration for async return values
+export const isDownloaded = async (userId: string, lessonId: string): Promise<boolean> => {
+  const snap = await getDoc(doc(db, "users", userId, "downloads", lessonId));
+  return snap.exists();
 };
 
-/**
- * Check if downloaded
- */
-export const isDownloaded = async (
-  lessonId: string
-) => {
-  const existing = await getDownloads();
+export const addDownload = async (userId: string, item: Omit<DownloadItem, "id">): Promise<void> => {
+  await setDoc(doc(db, "users", userId, "downloads", item.lessonId), { ...item, downloadedAt: Date.now() });
+};
 
-  return existing.some(
-    (item) => item.lessonId === lessonId
-  );
+export const removeDownload = async (userId: string, lessonId: string): Promise<void> => {
+  await deleteDoc(doc(db, "users", userId, "downloads", lessonId));
 };

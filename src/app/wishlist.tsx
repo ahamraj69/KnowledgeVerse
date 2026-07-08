@@ -1,77 +1,52 @@
-import { useEffect, useState } from "react";
-import {
-    FlatList,
-    Text,
-    View,
-} from "react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import { useAuth } from "../context/AuthContext";
+import { subscribeToWishlist, WishlistItem } from "../services/wishlistService"; // ✅ FIXED
+import { Theme } from "../theme/theme";
 
-import { getWishlist } from "../services/wishlistService";
+export default function WishlistScreen() {
+  const { user } = useAuth(); 
+  const [items, setItems] = useState<WishlistItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default function Wishlist() {
-  const [courses, setCourses] = useState<any[]>([]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.uid) return;
+      setLoading(true);
 
-  useEffect(() => {
-    loadWishlist();
-  }, []);
+      const unsubscribe = subscribeToWishlist(user.uid, (liveItems) => {
+        setItems(liveItems);
+        setLoading(false);
+      });
 
-  const loadWishlist = async () => {
-    const data = await getWishlist();
-    setCourses(data);
-  };
+      return () => unsubscribe();
+    }, [user?.uid])
+  );
+
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: "#0B1220",
-        padding: 20,
-      }}
-    >
-      <Text
-        style={{
-          color: "white",
-          fontSize: 28,
-          fontWeight: "bold",
-          marginBottom: 20,
-        }}
-      >
-        ❤️ Wishlist
-      </Text>
-
+    <View style={Theme.screen}>
       <FlatList
-        data={courses}
+        data={items}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={
-          <Text
-            style={{
-              color: "#9CA3AF",
-              marginTop: 40,
-              textAlign: "center",
-            }}
-          >
-            No saved courses yet.
-          </Text>
-        }
         renderItem={({ item }) => (
-          <View
-            style={{
-              backgroundColor: "#1F2937",
-              padding: 15,
-              borderRadius: 10,
-              marginBottom: 12,
-            }}
-          >
-            <Text
-              style={{
-                color: "white",
-                fontSize: 18,
-              }}
-            >
-              ❤️ {item.courseId}
-            </Text>
+          <View style={styles.card}>
+            <Text style={Theme.text}>Course Reference: {item.courseId}</Text>
           </View>
         )}
+        ListEmptyComponent={
+          <View style={styles.center}>
+            <Text style={Theme.text}>Your wishlist is empty.</Text>
+          </View>
+        }
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  card: { padding: 16, backgroundColor: "#111827", margin: 10, borderRadius: 10 }
+});

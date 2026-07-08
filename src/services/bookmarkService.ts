@@ -1,132 +1,52 @@
-import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    query,
-    serverTimestamp,
-    where,
-} from "firebase/firestore";
-
+import { collection, deleteDoc, doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
+// ✅ FIXED: Declare and export the type model contract inside the service file natively
 export interface Bookmark {
-  id?: string;
-  userId: string;
+  id: string;
   courseId: string;
   lessonId: string;
   lessonTitle: string;
-  createdAt?: any;
+  createdAt?: { seconds: number };
 }
 
 /**
- * Add bookmark
+ * Establishes a real-time listener subscription map for user-scoped bookmarks.
  */
-export const addBookmark = async (
+export const subscribeToBookmarks = (
   userId: string,
-  courseId: string,
-  lessonId: string,
-  lessonTitle: string
+  callback: (bookmarks: Bookmark[]) => void
 ) => {
-  const ref = collection(
-    db,
-    "users",
-    userId,
-    "bookmarks"
-  );
+  const q = collection(db, "users", userId, "bookmarks");
 
-  const q = query(
-    ref,
-    where("lessonId", "==", lessonId)
-  );
-
-  const existing = await getDocs(q);
-
-  if (!existing.empty) {
-    return existing.docs[0].id;
-  }
-
-  const docRef = await addDoc(ref, {
-    userId,
-    courseId,
-    lessonId,
-    lessonTitle,
-    createdAt: serverTimestamp(),
-  });
-
-  return docRef.id;
-};
-
-/**
- * Remove bookmark
- */
-export const removeBookmark = async (
-  userId: string,
-  bookmarkId: string
-) => {
-  await deleteDoc(
-    doc(
-      db,
-      "users",
-      userId,
-      "bookmarks",
-      bookmarkId
-    )
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const bookmarks = snapshot.docs.map(d => ({ 
+        id: d.id, 
+        ...d.data(),
+        createdAt: d.data().createdAt || { seconds: Date.now() / 1000 }
+      } as Bookmark));
+      callback(bookmarks);
+    },
+    (error) => {
+      console.log("Real-time bookmarks subscription error:", error);
+    }
   );
 };
 
-/**
- * Get all bookmarks
- */
-export const getBookmarks = async (
-  userId: string
-): Promise<Bookmark[]> => {
-  const ref = collection(
-    db,
-    "users",
-    userId,
-    "bookmarks"
-  );
-
-  const snapshot = await getDocs(ref);
-
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Omit<Bookmark, "id">),
-  }));
+// ✅ FIXED: Added specific status lookups to satisfy BookmarkButton.tsx requirements
+export const getBookmarkByLesson = async (userId: string, lessonId: string): Promise<Bookmark | null> => {
+  const docSnap = await getDoc(doc(db, "users", userId, "bookmarks", lessonId));
+  if (!docSnap.exists()) return null;
+  return { id: docSnap.id, ...docSnap.data() } as Bookmark;
 };
 
-/**
- * Check bookmark
- */
-export const getBookmarkByLesson = async (
-  userId: string,
-  lessonId: string
-) => {
-  const ref = collection(
-    db,
-    "users",
-    userId,
-    "bookmarks"
-  );
+export const addBookmark = async (userId: string, item: Omit<Bookmark, "id">): Promise<void> => {
+  const payload = { ...item, createdAt: { seconds: Date.now() / 1000 } };
+  await setDoc(doc(db, "users", userId, "bookmarks", item.lessonId), payload);
+};
 
-  const q = query(
-    ref,
-    where("lessonId", "==", lessonId)
-  );
-
-  const snapshot = await getDocs(q);
-
-  if (snapshot.empty) {
-    return null;
-  }
-
-  return {
-    id: snapshot.docs[0].id,
-    ...(snapshot.docs[0].data() as Omit<
-      Bookmark,
-      "id"
-    >),
-  };
+export const removeBookmark = async (userId: string, lessonId: string): Promise<void> => {
+  await deleteDoc(doc(db, "users", userId, "bookmarks", lessonId));
 };

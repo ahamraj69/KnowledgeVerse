@@ -1,64 +1,39 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { FirebaseApp, getApps, initializeApp } from "firebase/app";
-import {
-  // ✅ FIX: Import fallback persistence layers safely directly from core auth
-  browserSessionPersistence,
-  getAuth,
-  initializeAuth
-} from "firebase/auth";
+import { getApp, getApps, initializeApp } from "firebase/app";
+import * as firebaseAuth from "firebase/auth";
+import { initializeAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-/**
- * 🛠️ Firebase Project Production Credentials
- */
+// 1. Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAr38ZS9tnCifA2stYihZ6uO5Y4v40BAAw", 
-  authDomain: "://firebaseapp.com", 
+  apiKey: "AIzaSyAr38ZS9tnCifA2stYihZ6uO5Y4v40BAAw",
+  authDomain: "knowledgeverse-123.firebaseapp.com",
   projectId: "knowledgeverse-123",
   storageBucket: "knowledgeverse-123.firebasestorage.app",
   messagingSenderId: "833231039240",
   appId: "1:833231039240:web:43a66c0f5c997b6ff79abd",
 };
 
-// Target index 0 of the array so 'app' is strictly typed as a single FirebaseApp instance
-const app: FirebaseApp = getApps().length === 0 
-  ? initializeApp(firebaseConfig) 
-  : getApps()[0]; // ✅ FIX: Added exact array index lookup to safely resolve type mapping rules
+// 2. Prevent re-initialization during hot reloads
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-/**
- * 🔐 Safe Persistent Authentication Instance
- * Guards against dual initialization errors on hot reload sweeps
- */
-let auth: any;
+// 3. Cast the dynamic package module to get the React Native persistence handler
+// This bypasses the strict type error while keeping the correct function at runtime
+const getReactNativePersistence =
+  (firebaseAuth as any).getReactNativePersistence;
+
+let auth;
 
 try {
-  // ✅ FIX: Using a type-safe dynamic require statement for the React Native specific entry point
-  // This bypasses the static compile-time import path resolution error completely
-  const { getReactNativePersistence } = require("firebase/auth/react-native");
-  
   auth = initializeAuth(app, {
     persistence: getReactNativePersistence(AsyncStorage),
   });
-} catch (error) {
-  try {
-    auth = initializeAuth(app, {
-      persistence: browserSessionPersistence,
-    });
-  } catch {
-    auth = getAuth(app);
-  }
+} catch {
+  auth = firebaseAuth.getAuth(app);
 }
 
-/**
- * 🗄️ Firestore Database Context Connection Instance
- */
-export const db = getFirestore(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
 
-/**
- * 📦 Firebase Cloud Storage Assets File Upload Instance
- */
-export const storage = getStorage(app);
-
-export { app, auth };
-export default app;
+export { app, auth, db, storage };

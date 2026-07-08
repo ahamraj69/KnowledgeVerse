@@ -1,122 +1,98 @@
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-
-import { router, useLocalSearchParams } from "expo-router";
-
-import {
-  submitAssignment,
-} from "../../services/assignmentService";
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { useAuth } from "../../context/AuthContext";
+import { submitAssignment } from "../../services/assignmentService";
+import { Theme } from "../../theme/theme";
 
-export default function AssignmentSubmit() {
+export default function AssignmentSubmitScreen() {
   const { assignmentId, courseId } = useLocalSearchParams();
   const { user } = useAuth();
+  const router = useRouter();
 
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!user) return;
+    const cleanAnswer = answer.trim();
 
-    if (!answer.trim()) {
-      Alert.alert("Error", "Please write your answer");
+    // Secondary local fallback context gate verification
+    if (!user?.uid) {
+      Alert.alert("Authorization Error", "Active user context profile required to complete task uploads.");
+      return;
+    }
+
+    if (!cleanAnswer) {
+      Alert.alert("Blank Input", "Please provide a solution description text string or resource link reference URL.");
       return;
     }
 
     try {
+      // ✅ Phase 22.8: Sets true to lock button execution context thread immediately
       setLoading(true);
+      
+      await submitAssignment(user.uid, {
+        assignmentId: assignmentId as string,
+        courseId: courseId as string,
+        answerText: cleanAnswer,
+      });
 
-      // ✅ FIX: Realigned parameters perfectly to fit your structural 3-argument signature mapping sequence 
-      await submitAssignment(
-        assignmentId as string, // 1. assignmentId
-        user.uid,               // 2. userId
-        answer.trim()           // 3. fileUrl / content answer text
-      );
-
-      Alert.alert(
-        "Success",
-        "Assignment submitted successfully!"
-      );
-
+      Alert.alert("Success", "Assignment submitted successfully! 🎉");
       router.back();
     } catch (e) {
-      console.log(e);
-      Alert.alert(
-        "Error",
-        "Failed to submit assignment"
-      );
+      // ✅ Phase 22.7: Prevent stack trace leakage down into the alert prompt window fields
+      console.log("Assignment processing transaction block error caught:", e);
+      Alert.alert("Submission Blocked", "An unexpected transmission error occurred. Please verify connectivity parameters and try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: "#0B1220",
-        padding: 20,
-      }}
-    >
-      <Text
-        style={{
-          color: "white",
-          fontSize: 24,
-          fontWeight: "bold",
-          marginBottom: 20,
-        }}
-      >
-        ✍️ Submit Assignment
-      </Text>
+    <View style={[Theme.screen, styles.container]}>
+      <Text style={[Theme.text, styles.title]}>📄 Submit Assignment</Text>
+      <Text style={[Theme.muted, styles.subtitle]}>Provide your task answer link or code text repository block details below.</Text>
 
       <TextInput
-        placeholder="Write your answer here..."
+        placeholder="Type your submission details or asset reference URL here..."
         placeholderTextColor="#9CA3AF"
-        multiline
         value={answer}
         onChangeText={setAnswer}
-        style={{
-          backgroundColor: "#1F2937",
-          color: "white",
-          padding: 15,
-          borderRadius: 12,
-          height: 200,
-          textAlignVertical: "top",
-        }}
+        multiline
+        numberOfLines={6}
+        editable={!loading}
+        style={styles.input}
       />
 
+      {/* ✅ Phase 22.8: Form control changes color state configuration dynamically on load freeze */}
       <TouchableOpacity
+        disabled={loading}
         onPress={handleSubmit}
-        style={{
-          backgroundColor: "#2563EB",
-          paddingVertical: 14,
-          borderRadius: 12,
-          marginTop: 20,
-          alignItems: "center",
-        }}
+        style={[styles.btn, { backgroundColor: loading ? "#1F2937" : "#2563EB", opacity: loading ? 0.6 : 1 }]}
       >
-        {loading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text
-            style={{
-              color: "white",
-              fontWeight: "bold",
-              fontSize: 16,
-            }}
-          >
-            🚀 Submit
-          </Text>
-        )}
+        <Text style={styles.btnText}>{loading ? "Transmitting Solution..." : "Upload Submission"}</Text>
       </TouchableOpacity>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { padding: 24, justifyContent: "center" },
+  title: { fontSize: 24, fontWeight: "bold" },
+  subtitle: { fontSize: 15, marginTop: 4, marginBottom: 25 },
+  input: {
+    backgroundColor: "#111827",
+    color: "white",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+    minHeight: 150,
+    textAlignVertical: "top",
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  btn: { padding: 16, borderRadius: 12, alignItems: "center" },
+  btnText: { color: "white", fontWeight: "bold", fontSize: 16 },
+});

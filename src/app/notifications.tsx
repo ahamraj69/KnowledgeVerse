@@ -1,87 +1,53 @@
-import { useEffect, useState } from "react";
-import {
-    FlatList,
-    Text,
-    View,
-} from "react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import { useAuth } from "../context/AuthContext";
+import { NotificationItem, subscribeToNotifications } from "../services/notificationService"; // ✅ FIXED
+import { Theme } from "../theme/theme";
 
-import { getNotifications } from "../services/notificationService";
+export default function NotificationsScreen() {
+  const { user } = useAuth();
+  const [notes, setNotes] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default function Notifications() {
-  const [notifications, setNotifications] = useState<any[]>([]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.uid) return;
+      setLoading(true);
 
-  useEffect(() => {
-    loadNotifications();
-  }, []);
+      const unsubscribe = subscribeToNotifications(user.uid, (liveNotes) => {
+        setNotes(liveNotes);
+        setLoading(false);
+      });
 
-  const loadNotifications = async () => {
-    const data = await getNotifications();
-    setNotifications(data);
-  };
+      return () => unsubscribe();
+    }, [user?.uid])
+  );
+
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: "#0B1220",
-        padding: 20,
-      }}
-    >
-      <Text
-        style={{
-          color: "white",
-          fontSize: 28,
-          fontWeight: "bold",
-          marginBottom: 20,
-        }}
-      >
-        🔔 Notifications
-      </Text>
-
+    <View style={Theme.screen}>
       <FlatList
-        data={notifications}
+        data={notes}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={
-          <Text
-            style={{
-              color: "#9CA3AF",
-              textAlign: "center",
-              marginTop: 40,
-            }}
-          >
-            No notifications yet.
-          </Text>
-        }
         renderItem={({ item }) => (
-          <View
-            style={{
-              backgroundColor: "#1F2937",
-              padding: 16,
-              borderRadius: 12,
-              marginBottom: 12,
-            }}
-          >
-            <Text
-              style={{
-                color: "white",
-                fontSize: 18,
-                fontWeight: "bold",
-              }}
-            >
-              {item.title}
-            </Text>
-
-            <Text
-              style={{
-                color: "#D1D5DB",
-                marginTop: 6,
-              }}
-            >
-              {item.message}
-            </Text>
+          <View style={styles.card}>
+            <Text style={[Theme.text, { fontWeight: "bold" }]}>{item.title}</Text>
+            <Text style={[Theme.text, { marginTop: 4, color: "#D1D5DB" }]}>{item.message}</Text>
           </View>
         )}
+        ListEmptyComponent={
+          <View style={styles.center}>
+            <Text style={Theme.text}>No notifications yet.</Text>
+          </View>
+        }
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  card: { padding: 16, backgroundColor: "#111827", margin: 10, borderRadius: 10 }
+});

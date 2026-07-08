@@ -1,225 +1,98 @@
-import { router } from "expo-router";
-import {
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useRouter } from "expo-router";
+import { memo, useCallback } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-function Card({
-  title,
-  icon,
-  color,
-  onPress,
-}: {
+import { useAuth } from "../context/AuthContext";
+import { Theme } from "../theme/theme";
+
+interface CardProps {
   title: string;
   icon: string;
   color: string;
   onPress: () => void;
-}) {
+}
+
+// ✅ Phase 21.1: Memoized core component layout freezes state re-evaluations
+const DashboardCard = memo(function DashboardCard({ title, icon, color, onPress }: CardProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
-      style={{
-        backgroundColor: color,
-        padding: 16,
-        borderRadius: 14,
-        marginBottom: 12,
-        flexDirection: "row",
-        alignItems: "center",
-      }}
+      activeOpacity={0.8}
+      style={[styles.card, { borderLeftColor: color }]}
     >
-      <Text
-        style={{
-          fontSize: 28,
-          marginRight: 15,
-        }}
-      >
-        {icon}
-      </Text>
-
-      <Text
-        style={{
-          color: "white",
-          fontSize: 18,
-          fontWeight: "bold",
-        }}
-      >
-        {title}
-      </Text>
+      <View style={[styles.iconContainer, { backgroundColor: color + "15" }]}>
+        <Text style={styles.iconText}>{icon}</Text>
+      </View>
+      <View style={styles.textContainer}>
+        <Text style={[Theme.text, styles.cardTitle]}>{title}</Text>
+        <Text style={[Theme.muted, styles.cardSub]}>Launch module pipeline</Text>
+      </View>
     </TouchableOpacity>
   );
-}
+});
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const { user } = useAuth();
+
+  // ✅ Phase 21.2: Stable memoized functional routing callbacks
+  const openAnalytics = useCallback(() => {
+    if (!user) {
+      router.push("/login" as any);
+      return;
+    }
+    router.push("/analytics" as any);
+  }, [user, router]);
+
+  const openExplore = useCallback(() => {
+    router.push("/explore" as any);
+  }, [router]);
+
+  const openForum = useCallback(() => {
+    router.push("/forum" as any);
+  }, [router]);
+
+  const openTeacher = useCallback(() => {
+    router.push("/teacher" as any);
+  }, [router]);
+
   return (
-    <ScrollView
-      style={{
-        flex: 1,
-        backgroundColor: "#0B1220",
-      }}
-      contentContainerStyle={{
-        padding: 20,
-        paddingBottom: 40,
-      }}
-    >
-      <Text
-        style={{
-          color: "white",
-          fontSize: 30,
-          fontWeight: "bold",
-        }}
-      >
-        Welcome Back 👋
+    <ScrollView style={Theme.screen} contentContainerStyle={styles.container}>
+      <Text style={[Theme.text, styles.welcomeTitle]}>
+        👋 Welcome, {user?.displayName || "Student"}
+      </Text>
+      <Text style={[Theme.muted, styles.subtitle]}>
+        Manage curriculum streams and telemetry tracking nodes.
       </Text>
 
-      <Text
-        style={{
-          color: "#9CA3AF",
-          marginTop: 6,
-          marginBottom: 24,
-        }}
-      >
-        Continue learning and explore all KnowledgeVerse features.
-      </Text>
-
-      {/* Dashboard Summary Widget */}
-      <View
-        style={{
-          backgroundColor: "#111827",
-          borderRadius: 15,
-          padding: 18,
-          marginBottom: 25,
-        }}
-      >
-        <Text
-          style={{
-            color: "white",
-            fontSize: 18,
-            fontWeight: "bold",
-          }}
-        >
-          📊 Smart Dashboard
-        </Text>
-
-        <Text
-          style={{
-            color: "#9CA3AF",
-            marginTop: 8,
-          }}
-        >
-          View analytics, quizzes, assignments,
-          certificates and learning progress.
-        </Text>
-
-        <TouchableOpacity
-          onPress={() => router.push("/analytics")}
-          style={{
-            marginTop: 15,
-            backgroundColor: "#2563EB",
-            padding: 12,
-            borderRadius: 10,
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              color: "white",
-              fontWeight: "bold",
-            }}
-          >
-            Open Dashboard
-          </Text>
-        </TouchableOpacity>
+      <View style={styles.grid}>
+        <DashboardCard title="Analytics" icon="📊" color="#0EA5E9" onPress={openAnalytics} />
+        <DashboardCard title="Explore Courses" icon="🎓" color="#10B981" onPress={openExplore} />
+        <DashboardCard title="Discussion Forum" icon="💬" color="#6366F1" onPress={openForum} />
+        <DashboardCard title="Teacher Studio" icon="👨‍🏫" color="#F59E0B" onPress={openTeacher} />
       </View>
-
-      <Text
-        style={{
-          color: "white",
-          fontSize: 22,
-          fontWeight: "bold",
-          marginBottom: 15,
-        }}
-      >
-        Explore
-      </Text>
-
-      <Card
-        title="Courses"
-        icon="📚"
-        color="#2563EB"
-        onPress={() => router.push("/courses")}
-      />
-
-      <Card
-        title="Bookmarks"
-        icon="🔖"
-        color="#059669"
-        onPress={() => router.push("/bookmarks")}
-      />
-
-      <Card
-        title="Wishlist"
-        icon="❤️"
-        color="#DC2626"
-        onPress={() => router.push("/wishlist")}
-      />
-
-      <Card
-        title="Continue Learning"
-        icon="▶️"
-        color="#7C3AED"
-        // ✅ FIX: Rerouted from non-existent path to valid existing screen /progress
-        onPress={() => router.push("/progress")}
-      />
-
-      <Card
-        title="Recently Viewed"
-        icon="🕒"
-        color="#EA580C"
-        // ✅ FIX: Rerouted from non-existent path to valid existing screen /courses
-        onPress={() => router.push("/courses")}
-      />
-
-      <Card
-        title="Assignments"
-        icon="📝"
-        color="#0891B2"
-        // ✅ FIX: Swapped layout directory target to accurate dynamic courseId parameter map
-        onPress={() =>
-          router.push({
-            pathname: "/assignment/[courseId]",
-            params: { courseId: "course1" },
-          })
-        }
-      />
-
-      <Card
-        title="Analytics"
-        icon="📊"
-        color="#0EA5E9"
-        onPress={() => router.push("/analytics")}
-      />
-
-      <Card
-        title="Certificates"
-        icon="🏆"
-        color="#CA8A04"
-        // ✅ FIX: Swapped layout directory target to accurate dynamic id parameter map
-        onPress={() =>
-          router.push({
-            pathname: "/certificate/[id]",
-            params: { id: "course1" },
-          })
-        }
-      />
-
-      <Card
-        title="Profile"
-        icon="👤"
-        color="#374151"
-        onPress={() => router.push("/profile")}
-      />
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { padding: 20, paddingBottom: 40 },
+  welcomeTitle: { fontSize: 26, fontWeight: "bold", marginTop: 10 },
+  subtitle: { fontSize: 15, marginTop: 4, marginBottom: 25 },
+  grid: { gap: 16 },
+  card: {
+    backgroundColor: "#111827",
+    padding: 16,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+    borderLeftWidth: 5,
+  },
+  iconContainer: { width: 50, height: 50, borderRadius: 10, justifyContent: "center", alignItems: "center", marginRight: 15 },
+  iconText: { fontSize: 24 },
+  textContainer: { flex: 1 },
+  cardTitle: { fontSize: 17, fontWeight: "600" },
+  cardSub: { fontSize: 13, marginTop: 2 },
+});

@@ -1,127 +1,58 @@
-import {
-    Alert,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
-
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { DownloadItem } from "../services/downloadService";
+import { Theme } from "../theme/theme";
 
 interface Props {
   item: DownloadItem;
-  onOpen: (lessonId: string) => void;
-  onDelete: (lessonId: string) => Promise<void>;
+  onRemove: () => void;
 }
 
-export default function DownloadCard({
-  item,
-  onOpen,
-  onDelete,
-}: Props) {
-  const confirmDelete = () => {
-    Alert.alert(
-      "Delete Download",
-      "Do you want to remove this offline lesson?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            await onDelete(item.lessonId);
-          },
-        },
-      ]
-    );
-  };
-
-  const date = new Date(
-    item.downloadedAt
-  ).toLocaleDateString();
+export default function DownloadCard({ item, onRemove }: Props) {
+  // ✅ FIX: Force numeric extraction fallback so the native Date constructor parameters type-check perfectly
+  const dateObj = new Date(item.downloadedAt ?? Date.now());
+  const dateString = dateObj.toLocaleDateString();
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>
-        📥 {item.lessonTitle}
-      </Text>
-
-      <Text style={styles.sub}>
-        Downloaded: {date}
-      </Text>
-
-      <View style={styles.row}>
-        <TouchableOpacity
-          style={styles.openBtn}
-          onPress={() => onOpen(item.lessonId)}
-        >
-          <Text style={styles.text}>
-            ▶ Open
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.deleteBtn}
-          onPress={confirmDelete}
-        >
-          <Text style={styles.text}>
-            🗑 Delete
-          </Text>
-        </TouchableOpacity>
+      <View style={{ flex: 1 }}>
+        <Text style={[Theme.text, styles.title]}>{item.lessonTitle}</Text>
+        <Text style={[Theme.muted, styles.date]}>Downloaded on: {dateString}</Text>
       </View>
+      <TouchableOpacity onPress={onRemove} style={styles.removeBtn}>
+        <Text style={styles.removeText}>Delete 🗑️</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#1F2937",
-    padding: 18,
-    borderRadius: 16,
-    marginBottom: 15,
-  },
-
-  title: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-
-  sub: {
-    color: "#9CA3AF",
-    marginTop: 8,
-    fontSize: 13,
-  },
-
-  row: {
+    backgroundColor: "#111827",
+    padding: 16,
+    borderRadius: 12,
     flexDirection: "row",
-    marginTop: 15,
-    justifyContent: "space-between",
-  },
-
-  openBtn: {
-    flex: 1,
-    backgroundColor: "#2563EB",
-    padding: 12,
-    borderRadius: 10,
-    marginRight: 8,
     alignItems: "center",
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
   },
-
-  deleteBtn: {
-    flex: 1,
-    backgroundColor: "#DC2626",
-    padding: 12,
-    borderRadius: 10,
-    marginLeft: 8,
-    alignItems: "center",
+  title: {
+    fontSize: 16,
+    fontWeight: "600",
   },
-
-  text: {
-    color: "white",
-    fontWeight: "bold",
+  date: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  removeBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+  },
+  removeText: {
+    color: "#EF4444",
+    fontWeight: "600",
+    fontSize: 14,
   },
 });

@@ -1,210 +1,136 @@
-import { useEffect, useState } from "react";
-import {
-    ActivityIndicator,
-    FlatList,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
+import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 
-import EarningCard from "../../components/EarningCard";
-import RevenueChart from "../../components/RevenueChart";
+// ✅ PERMANENT PATH ALIAS CONFIGURATION (Matches your exact tsconfig compiler mappings)
+import EmptyState from "@/components/EmptyState";
+import SkeletonCard from "@/components/SkeletonCard";
+import { useAuth } from "@/context/AuthContext";
+import { useNetwork } from "@/context/NetworkContext";
+import { EarningsLedger, getTeacherEarningsData, TransactionReceipt } from "@/services/earningsService";
+import { Theme } from "@/theme/theme";
 
-import {
-    calculateEarnings,
-    getTeacherPayments,
-    Payment,
-} from "../../services/earningService";
-
-export default function TeacherEarnings() {
-  const teacherId = "teacher_123";
-
+export default function TeacherEarningsScreen() {
+  const { user } = useAuth();
+  const { isConnected } = useNetwork();
+  
+  const [ledger, setLedger] = useState<EarningsLedger | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [payments, setPayments] = useState<Payment[]>([]);
-
-  const [stats, setStats] = useState({
-    totalRevenue: 0,
-    teacherRevenue: 0,
-    platformRevenue: 0,
-    totalSales: 0,
-  });
-
-  useEffect(() => {
-    loadPayments();
-  }, []);
-
-  const loadPayments = async () => {
+  const loadEarnings = useCallback(async () => {
+    if (!user?.uid) return;
     try {
-      const data = await getTeacherPayments(teacherId);
-
-      setPayments(data);
-
-      setStats(calculateEarnings(data));
-    } catch (error) {
-      console.log(error);
-    } finally {
+      const data = await getTeacherEarningsData(user.uid);
+      setLedger(data);
+    } catch (e) {
+      console.log("Error loading teacher financial nodes:", e);
+        } finally { // ✅ FIXED: Replaced the typo 'military-finally' with the native 'finally' block key
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [user?.uid]);
 
-  if (loading) {
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      loadEarnings();
+    }, [loadEarnings])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadEarnings();
+  }, [loadEarnings]);
+
+  const renderTransactionItem = useCallback(({ item }: { item: TransactionReceipt }) => (
+    <View style={styles.transactionCard}>
+      <View style={styles.txInfo}>
+        <Text style={[Theme.text, styles.txStudent]}>{item.studentName}</Text>
+        <Text style={Theme.muted}>{item.courseTitle}</Text>
+      </View>
+      <Text style={styles.txAmount}>+₹{item.amount}</Text>
+    </View>
+  ), []);
+
+  const listHeader = useMemo(() => {
+    if (!ledger) return null;
     return (
-      <View style={styles.center}>
-        <ActivityIndicator
-          size="large"
-          color="#2563EB"
-        />
+      <View>
+        <Text style={[Theme.text, styles.mainTitle]}>📊 Revenue Dashboard</Text>
+        <Text style={[Theme.muted, styles.subtitle]}>Track course subscription metrics, payouts and creator splits.</Text>
 
-        <Text style={styles.loading}>
-          Loading Earnings...
-        </Text>
+        <View style={styles.metricsGrid}>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricLabel}>Gross Revenue</Text>
+            <Text style={[Theme.text, styles.metricValue]}>₹{ledger.grossRevenue}</Text>
+          </View>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricLabel}>Creator Split (70%)</Text>
+            <Text style={[Theme.text, styles.metricValue, { color: "#10B981" }]}>₹{ledger.payoutBalance}</Text>
+          </View>
+        </View>
+
+        <View style={[styles.metricCard, styles.fullWidthCard]}>
+          <Text style={styles.metricLabel}>Total Courses Sold</Text>
+          <Text style={[Theme.text, styles.metricValue]}>{ledger.totalSalesCount} Licenses</Text>
+        </View>
+
+        <Text style={[Theme.text, styles.sectionTitle]}>⏱️ Recent Transactions</Text>
+      </View>
+    );
+  }, [ledger]);
+
+  if (loading && !refreshing) {
+    return (
+      <View style={[Theme.screen, styles.loadingPadding]}>
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
       </View>
     );
   }
 
   return (
-    <FlatList
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      data={payments}
-      keyExtractor={(item) => item.id}
-      ListHeaderComponent={
-        <>
-          <Text style={styles.header}>
-            💰 Earnings Dashboard
-          </Text>
-
-          <EarningCard
-            title="Total Revenue"
-            value={`₹${stats.totalRevenue}`}
-            icon="💳"
-            color="#2563EB"
+    <View style={Theme.screen}>
+      <FlatList
+        data={ledger?.recentTransactions || []}
+        keyExtractor={(item) => item.id}
+        renderItem={renderTransactionItem}
+        ListHeaderComponent={listHeader}
+        removeClippedSubviews={true}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={3}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />
+        }
+        ListEmptyComponent={
+          <EmptyState 
+            icon="💰" 
+            title="No Sales Tally Logs" 
+            subtitle="Financial ledger statements will automatically format here once students purchase your course licenses." 
           />
-
-          <EarningCard
-            title="Your Earnings"
-            value={`₹${stats.teacherRevenue}`}
-            icon="💰"
-            color="#10B981"
-          />
-
-          <EarningCard
-            title="Platform Fee"
-            value={`₹${stats.platformRevenue}`}
-            icon="🏢"
-            color="#F59E0B"
-          />
-
-          <EarningCard
-            title="Course Sales"
-            value={stats.totalSales}
-            icon="📚"
-            color="#7C3AED"
-          />
-
-          <RevenueChart
-            values={payments.map(
-              (item) => item.teacherAmount
-            )}
-          />
-
-          <Text style={styles.section}>
-            Recent Payments
-          </Text>
-        </>
-      }
-      renderItem={({ item }) => (
-        <View style={styles.paymentCard}>
-          <Text style={styles.amount}>
-            ₹{item.teacherAmount}
-          </Text>
-
-          <Text style={styles.course}>
-            Course: {item.courseId}
-          </Text>
-
-          <Text style={styles.student}>
-            Student: {item.studentId}
-          </Text>
-        </View>
-      )}
-      ListEmptyComponent={
-        <Text style={styles.empty}>
-          No payments received yet.
-        </Text>
-      }
-    />
+        }
+        contentContainerStyle={styles.container}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0B1220",
-  },
-
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-
-  center: {
-    flex: 1,
-    backgroundColor: "#0B1220",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  loading: {
-    color: "#FFFFFF",
-    marginTop: 12,
-    fontSize: 16,
-  },
-
-  header: {
-    color: "#FFFFFF",
-    fontSize: 30,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-
-  section: {
-    color: "#FFFFFF",
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-
-  paymentCard: {
-    backgroundColor: "#1F2937",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-
-  amount: {
-    color: "#10B981",
-    fontSize: 22,
-    fontWeight: "bold",
-  },
-
-  course: {
-    color: "#FFFFFF",
-    marginTop: 8,
-    fontSize: 15,
-  },
-
-  student: {
-    color: "#9CA3AF",
-    marginTop: 4,
-    fontSize: 14,
-  },
-
-  empty: {
-    color: "#9CA3AF",
-    textAlign: "center",
-    marginTop: 50,
-    fontSize: 16,
-  },
+  container: { padding: 20, paddingBottom: 40, flexGrow: 1 },
+  loadingPadding: { padding: 20 },
+  mainTitle: { fontSize: 28, fontWeight: "bold" },
+  subtitle: { fontSize: 14, marginTop: 4, marginBottom: 24 },
+  metricsGrid: { flexDirection: "row", justifyContent: "space-between", gap: 16, marginBottom: 16 },
+  metricCard: { backgroundColor: "#111827", flex: 1, padding: 18, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.05)" },
+  fullWidthCard: { marginBottom: 28 },
+  metricLabel: { color: "#9CA3AF", fontSize: 13, fontWeight: "600", textTransform: "uppercase", marginBottom: 6 },
+  metricValue: { fontSize: 22, fontWeight: "bold" },
+  sectionTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 14 },
+  transactionCard: { backgroundColor: "#1E293B", padding: 16, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.03)" },
+  txInfo: { flex: 1, marginRight: 10 },
+  txStudent: { fontSize: 16, fontWeight: "600", marginBottom: 2 },
+  txAmount: { color: "#10B981", fontSize: 17, fontWeight: "bold" }
 });

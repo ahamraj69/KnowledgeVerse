@@ -1,51 +1,38 @@
-import { getUserSubmissions } from "./assignmentService";
-import { getDownloads } from "./downloadService";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { getCache, setCache } from "./cache";
 
 export interface UserAnalytics {
   totalDownloads: number;
   totalAssignments: number;
-  totalQuizScore: number;
   quizAttempts: number;
   averageScore: number;
+  totalQuizScore: number;
 }
 
-/**
- * 📊 Get full user analytics
- */
-export const getUserAnalytics = async (
-  userId: string
-): Promise<UserAnalytics> => {
-  try {
-    const downloads = await getDownloads();
-    const submissions = await getUserSubmissions(userId);
+export const getUserAnalytics = async (userId: string): Promise<UserAnalytics> => {
+  const cacheKey = `analytics_${userId}`;
+  const cached = getCache<UserAnalytics>(cacheKey);
+  if (cached) return cached;
 
-    let totalScore = 0;
-    let attempts = 0;
+  const docRef = doc(db, "analytics", userId);
+  const docSnap = await getDoc(docRef);
 
-    // Simulate quiz analysis (simple version)
-    for (const sub of submissions) {
-      if (sub.status === "graded" && sub.grade !== undefined) {
-        totalScore += sub.grade;
-        attempts++;
-      }
-    }
-
-    return {
-      totalDownloads: downloads.length,
-      totalAssignments: submissions.length,
-      totalQuizScore: totalScore,
-      quizAttempts: attempts,
-      averageScore: attempts > 0 ? totalScore / attempts : 0,
-    };
-  } catch (error) {
-    console.log("Analytics error:", error);
-
-    return {
-      totalDownloads: 0,
-      totalAssignments: 0,
-      totalQuizScore: 0,
-      quizAttempts: 0,
-      averageScore: 0,
-    };
+  if (!docSnap.exists()) {
+    const defaultData = { totalDownloads: 0, totalAssignments: 0, quizAttempts: 0, averageScore: 0, totalQuizScore: 0 };
+    setCache(cacheKey, defaultData);
+    return defaultData;
   }
+
+  const data = docSnap.data();
+  const result: UserAnalytics = {
+    totalDownloads: data.totalDownloads || 0,
+    totalAssignments: data.totalAssignments || 0,
+    quizAttempts: data.quizAttempts || 0,
+    averageScore: data.averageScore || 0,
+    totalQuizScore: data.totalQuizScore || 0,
+  };
+
+  setCache(cacheKey, result);
+  return result;
 };

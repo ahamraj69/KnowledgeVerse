@@ -1,131 +1,127 @@
-import { router } from "expo-router";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { useCallback, useState } from "react";
+import { useRouter } from "expo-router";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-import { useLoading } from "../context/LoadingContext"; // ✅ Added loading context
-import { auth } from "../lib/firebase";
-import { createUserProfile } from "../services/userService";
-import { Colors } from "../theme/colors"; // ✅ Added central color tokens
-import { Theme } from "../theme/theme"; // ✅ Added centralized layout styles
+import { auth, db } from "../lib/firebase";
+import { Colors } from "../theme/colors";
+import { Theme } from "../theme/theme";
 
-export default function Signup() {
+// ✅ FIXED: Enforced explicit default export declaration for path synchronization loops
+export default function SignupScreen() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
-  const { setLoading } = useLoading(); // ✅ Hook injected locally
+  const [loading, setLoading] = useState(false);
 
-  // ✅ Optimized with useCallback to eliminate re-rendering performance bottlenecks
-  const signup = useCallback(async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      Alert.alert("Error", "Please fill in all fields.");
+  const handleSignup = async () => {
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    if (cleanName.length < 2) {
+      Alert.alert("Invalid Input", "Please enter a valid name (minimum 2 characters).");
+      return;
+    }
+
+    if (!cleanEmail || cleanPassword.length < 6) {
+      Alert.alert("Weak Credentials", "Passwords must be at least 6 characters long.");
       return;
     }
 
     try {
-      setLoading(true); // 🚀 Turn on global screen-blocking blur loader overlay
+      setLoading(true);
+      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+      const secureUserRef = userCredential.user;
 
-      const credential = await createUserWithEmailAndPassword(
-        auth,
-        email.trim(),
-        password
-      );
+      await updateProfile(secureUserRef, { displayName: cleanName });
 
-      await createUserProfile(
-        credential.user.uid,
-        name.trim(),
-        credential.user.email ?? email.trim(),
-        "student"
-      );
+      await setDoc(doc(db, "users", secureUserRef.uid), {
+        uid: secureUserRef.uid,
+        name: cleanName,
+        email: secureUserRef.email, 
+        role: "student", 
+        createdAt: Date.now(), 
+      });
 
-      // Instantly clear background task screens and redirect straight to home route dashboard
-      router.replace("/");
-    } catch (e: any) {
-      console.log("Signup error:", e);
-      Alert.alert("Signup Failed", e.message ?? "Something went wrong.");
+      Alert.alert("Success", "Account generated successfully! 🎉");
+      router.replace("/" as any);
+    } catch (error) {
+      console.log("Account registration fault catches:", error);
+      Alert.alert("Registration Failed", "Something went wrong while setting up your profile. Please try again.");
     } finally {
-      setLoading(false); // 🛑 Turn off global screen-blocking loader overlay securely
+      setLoading(false);
     }
-  }, [name, email, password, setLoading]);
+  };
 
   return (
-    <View style={[Theme.screen, { justifyContent: "center", padding: 20 }]}>
-      <Text style={[Theme.text, styles.title]}>📝 Sign Up</Text>
+    <View style={[Theme.screen, styles.container]}>
+      <Text style={[Theme.text, styles.title]}>🚀 Create Account</Text>
+      <Text style={[Theme.muted, styles.subtitle]}>Join KnowledgeVerse and upgrade your skill systems today.</Text>
 
       <TextInput
         placeholder="Full Name"
-        placeholderTextColor={Colors.textMuted} // ✅ Central token applied
+        placeholderTextColor="#9CA3AF"
         value={name}
         onChangeText={setName}
+        editable={!loading}
         style={styles.input}
       />
 
       <TextInput
-        placeholder="Email"
-        placeholderTextColor={Colors.textMuted} // ✅ Central token applied
+        placeholder="Email Address"
+        placeholderTextColor="#9CA3AF"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
+        editable={!loading}
         style={styles.input}
       />
 
       <TextInput
         placeholder="Password"
-        placeholderTextColor={Colors.textMuted} // ✅ Central token applied
+        placeholderTextColor="#9CA3AF"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        editable={!loading}
         style={styles.input}
       />
 
-      <TouchableOpacity style={styles.btn} onPress={signup}>
-        <Text style={[Theme.text, styles.btnText]}>Sign Up</Text>
+      <TouchableOpacity 
+        disabled={loading} 
+        onPress={handleSignup} 
+        style={[styles.btn, { backgroundColor: Colors.success, opacity: loading ? 0.6 : 1 }]}
+      >
+        <Text style={[Theme.text, styles.btnText]}>{loading ? "Generating Profile..." : "Sign Up"}</Text>
       </TouchableOpacity>
 
-      {/* Login toggle trigger using your exact inline styling layout definitions */}
-      <TouchableOpacity
-        onPress={() => router.back()}
-        style={{ marginTop: 20 }}
-      >
-        <Text
-          style={{
-            textAlign: "center",
-            color: Colors.purple, // ✅ Theme color matched to login screen accent rules
-            fontSize: 16,
-          }}
-        >
-          Already have an account? Login
-        </Text>
+      <TouchableOpacity disabled={loading} onPress={() => router.push("/login" as any)} style={styles.linkGap}>
+        <Text style={styles.linkText}>Already have an account? Sign In</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 30,
-    fontWeight: "bold",
-    marginBottom: 30,
-    textAlign: "center",
-  },
+  container: { padding: 24, justifyContent: "center", flex: 1, backgroundColor: "#0F172A" },
+  title: { fontSize: 32, fontWeight: "bold" },
+  subtitle: { fontSize: 16, marginTop: 6, marginBottom: 30 },
   input: {
-    backgroundColor: Colors.card, // ✅ Central token applied
-    color: Colors.text, // ✅ Central token applied
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
+    backgroundColor: "#111827",
+    color: "white",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+    fontSize: 16,
   },
-  btn: {
-    backgroundColor: Colors.primary, // ✅ Central token applied
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  btnText: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  btn: { padding: 16, borderRadius: 12, alignItems: "center", marginTop: 10 },
+  btnText: { fontWeight: "bold", fontSize: 17 },
+  linkGap: { marginTop: 20 },
+  linkText: { color: "#2563EB", fontWeight: "600", textAlign: "center" }
 });

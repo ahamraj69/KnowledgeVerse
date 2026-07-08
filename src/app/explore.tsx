@@ -44,7 +44,7 @@ export default function TabTwoScreen() {
             This starter app includes example{'\n'}code to help you get started.
           </ThemedText>
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
+          <ExternalLink href="https://expo.dev" asChild>
             <Pressable style={({ pressed }) => pressed && styles.pressed}>
               <ThemedView type="backgroundElement" style={styles.linkButton}>
                 <ThemedText type="link">Expo documentation</ThemedText>
@@ -68,7 +68,7 @@ export default function TabTwoScreen() {
               The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
               the tab navigator.
             </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
+            <ExternalLink href="https://expo.dev/router/introduction">
               <ThemedText type="linkPrimary">Learn more</ThemedText>
             </ExternalLink>
           </Collapsible>
@@ -81,7 +81,7 @@ export default function TabTwoScreen() {
                 project.
               </ThemedText>
               <Image
-                source={require('@/assets/images/tutorial-web.png')}
+                source={require('../../assets/images/tutorial-web.png')}
                 style={styles.imageTutorial}
               />
             </ThemedView>
@@ -93,8 +93,11 @@ export default function TabTwoScreen() {
               <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
               screen densities.
             </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
+            <Image 
+              source={require('../../assets/images/react-logo.png')} 
+              style={styles.imageReact} 
+            />
+            <ExternalLink href="https://reactnative.dev">
               <ThemedText type="linkPrimary">Learn more</ThemedText>
             </ExternalLink>
           </Collapsible>
@@ -105,7 +108,7 @@ export default function TabTwoScreen() {
               <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
               user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
             </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
+            <ExternalLink href="https://expo.dev/develop/user-interface/color-themes/">
               <ThemedText type="linkPrimary">Learn more</ThemedText>
             </ExternalLink>
           </Collapsible>

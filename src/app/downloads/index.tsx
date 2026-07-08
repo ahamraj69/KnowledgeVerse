@@ -1,167 +1,121 @@
-import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { router } from "expo-router";
-
-import DownloadCard from "../../components/DownloadCard";
 import { useAuth } from "../../context/AuthContext";
-
-import {
-  DownloadItem,
-  getDownloads,
-  removeDownload,
-} from "../../services/downloadService";
+// ✅ FIXED: Imported type reference interface natively from its true service layer home
+import { DownloadItem, removeDownload, subscribeToDownloads } from "../../services/downloadService";
+import { Theme } from "../../theme/theme";
 
 export default function DownloadsScreen() {
   const { user } = useAuth();
-
-  const [downloads, setDownloads] = useState<
-    DownloadItem[]
-  >([]);
+  const [downloads, setDownloads] = useState<DownloadItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user) return;
-
-    loadDownloads();
-  }, [user]);
-
-  const loadDownloads = async () => {
-    try {
+  // ✅ Focused mounting layer attaches live listeners and disposes them cleanly on focus shift
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.uid) return;
       setLoading(true);
 
-      const data = await getDownloads();
+      const unsubscribe = subscribeToDownloads(user.uid, (liveDownloads) => {
+        // Enforce safe timestamp tracking loops to clear out any undefined values
+        const sorted = liveDownloads.sort((a, b) => {
+          const timeA = a.downloadedAt ?? 0;
+          const timeB = b.downloadedAt ?? 0;
+          return timeB - timeA;
+        });
+        setDownloads(sorted);
+        setLoading(false);
+      });
 
-      // newest first
-      const sorted = data.sort(
-        (a, b) =>
-          b.downloadedAt - a.downloadedAt
-      );
+      return () => unsubscribe();
+    }, [user?.uid])
+  );
 
-      setDownloads(sorted);
-    } catch (e) {
-      console.log(e);
-
-      Alert.alert(
-        "Error",
-        "Failed to load downloads"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteDownload = async (
-    lessonId: string
-  ) => {
+  const handleDelete = async (lessonId: string) => {
+    if (!user?.uid) return;
     try {
-      const updated =
-        await removeDownload(lessonId);
-
-      setDownloads(updated);
+      await removeDownload(user.uid, lessonId);
     } catch (e) {
-      console.log(e);
-
-      Alert.alert(
-        "Error",
-        "Failed to delete download"
-      );
+      console.log("Failed to clear localized download track:", e);
     }
-  };
-
-  const openLesson = (lessonId: string) => {
-    // Navigate back to course screen
-    router.push(`/course/${lessonId}`);
   };
 
   if (loading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#0B1220",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <ActivityIndicator color="#22C55E" />
-        <Text style={{ color: "white", marginTop: 10 }}>
-          Loading Downloads...
-        </Text>
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#2563EB" />
       </View>
     );
   }
+
   return (
-  <ScrollView
-    style={{
-      flex: 1,
-      backgroundColor: "#0B1220",
-    }}
-    contentContainerStyle={{
-      padding: 20,
-      paddingBottom: 40,
-    }}
-  >
-    <Text
-      style={{
-        color: "white",
-        fontSize: 28,
-        fontWeight: "bold",
-        marginBottom: 20,
-      }}
-    >
-      📥 Offline Downloads
-    </Text>
-
-    {downloads.length === 0 ? (
-      <View
-        style={{
-          marginTop: 80,
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ fontSize: 60 }}>
-          📭
-        </Text>
-
-        <Text
-          style={{
-            color: "white",
-            fontSize: 22,
-            fontWeight: "bold",
-            marginTop: 10,
-          }}
-        >
-          No Downloads Yet
-        </Text>
-
-        <Text
-          style={{
-            color: "#9CA3AF",
-            marginTop: 8,
-            textAlign: "center",
-            fontSize: 15,
-          }}
-        >
-          Download lessons to access them offline anytime
-        </Text>
-      </View>
-    ) : (
-      downloads.map((item) => (
-        <DownloadCard
-          key={item.id}
-          item={item}
-          onOpen={openLesson}
-          onDelete={deleteDownload}
-        />
-      ))
-    )}
-  </ScrollView>
-);
+    <View style={Theme.screen}>
+      <FlatList
+        data={downloads}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <View style={styles.textWrapper}>
+              <Text style={[Theme.text, styles.title]}>{item.lessonTitle}</Text>
+              <Text style={Theme.muted}>Available offline</Text>
+            </View>
+            <TouchableOpacity onPress={() => handleDelete(item.lessonId)} style={styles.deleteBtn}>
+              <Text style={styles.deleteText}>Delete 🗑️</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        ListEmptyComponent={
+          <View style={styles.center}>
+            <Text style={Theme.text}>No offline downloads available.</Text>
+          </View>
+        }
+        contentContainerStyle={styles.list}
+      />
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  list: {
+    padding: 16,
+    flexGrow: 1,
+  },
+  card: {
+    padding: 16,
+    backgroundColor: "#111827",
+    marginBottom: 12,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  textWrapper: {
+    flex: 1,
+    marginRight: 10,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  deleteBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+  },
+  deleteText: {
+    color: "#EF4444",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+});
