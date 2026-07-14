@@ -1,266 +1,42 @@
+import CachedImage from "@/components/CachedImage";
+import { useAuth } from "@/context/AuthContext";
+import { addBookmark } from "@/services/bookmarkService";
+import {
+    CourseServiceType,
+    getCourses,
+} from "@/services/courseListService";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  Alert,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator, Alert, ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 
-import BookmarkButton from "../../components/BookmarkButton";
-import CourseHeader from "../../components/CourseHeader";
-import CoursePlayer from "../../components/CoursePlayer";
-import DownloadButton from "../../components/DownloadButton";
-import LessonList, {
-  Lesson,
-} from "../../components/LessonList";
-import ProgressCard from "../../components/ProgressCard";
-import PurchaseCard from "../../components/PurchaseCard";
-import QuizCard from "../../components/QuizCard";
-import ReviewCard from "../../components/ReviewCard";
-import CommentsSection from "../../components/comments/CommentsSection";
+export default function CourseDetailsScreen() {
+  const { id } = useLocalSearchParams<{
+    id: string;
+  }>();
 
-import { useAuth } from "../../context/AuthContext";
-import { useLoading } from "../../context/LoadingContext";
+  const [loading, setLoading] = useState(true);
+  const [course, setCourse] = useState<CourseServiceType | null>(null);
 
-import { hasAccess } from "../../services/accessService";
-import {
-  generateCertificate,
-  getCertificate,
-} from "../../services/certificateService";
-import {
-  getContinueLearning,
-  saveContinueLearning,
-} from "../../services/continueLearningService";
-import {
-  getLessons,
-} from "../../services/lessonService";
-import {
-  completeLesson,
-  getProgress,
-  progressPercent,
-} from "../../services/progressService";
-import {
-  payForCourse,
-} from "../../services/razorpayService";
-import {
-  saveRecentlyViewed,
-} from "../../services/recentlyViewedService";
-import {
-  addReview,
-  getAverageRating,
-  getCourseReviews,
-  Review,
-} from "../../services/reviewService";
-import {
-  addToWishlist,
-} from "../../services/wishlistService";
-
-import { Colors } from "../../theme/colors";
-import { Theme } from "../../theme/theme";
-
-export default function CourseDetail() {
-  const { id } = useLocalSearchParams();
   const { user } = useAuth();
-  
-  const { setLoading } = useLoading();
-
-  const [access, setAccess] = useState(false);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
-  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
-  const [progress, setProgress] = useState(0);
-  const [courseCompleted, setCourseCompleted] = useState(false);
-
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [rating, setRating] = useState(5);
-  const [reviewText, setReviewText] = useState("");
-  const [averageRating, setAverageRating] = useState(0);
 
   useEffect(() => {
-    if (!id) return;
-
     loadCourse();
-  }, [id]);
+  }, []);
 
   const loadCourse = async () => {
     try {
       setLoading(true);
-      
-      if (user) {
-        await saveRecentlyViewed(user.uid, id as string);
-      }
+      const courses = await getCourses();
+      const found = courses.find((item) => item.id === id);
 
-      const purchased = await hasAccess(id as string);
-      setAccess(purchased);
-
-      const data = await getLessons(id as string);
-      setLessons(data);
-
-           if (data.length > 0) {
-        let lessonToOpen: Lesson | null = data[0]; // ✅ FIXED: Explicitly assigns the first lesson object inside the array list
-
-
-        if (user) {
-          const recent = await getContinueLearning(user.uid, id as string);
-
-          if (recent) {
-            const found = data.find(
-              (lesson) => lesson.id === recent.lessonId
-            );
-
-            if (found) {
-              lessonToOpen = found;
-            }
-          }
-        }
-
-        setSelectedLesson(lessonToOpen);
-      } else {
-        setSelectedLesson(null);
-      }
-
-      if (user) {
-        const saved = await getProgress(user.uid, id as string);
-
-        setCompletedLessons(saved?.completedLessons || []);
-
-        const totalLessons = data.length || 0;
-
-        const percent = progressPercent(
-          saved?.completedLessons?.length || 0,
-          totalLessons
-        );
-
-        setProgress(percent);
-
-        setCourseCompleted(
-          totalLessons > 0 &&
-          (saved?.completedLessons?.length || 0) === totalLessons
-        );
-      }
-
-      const reviewData = await getCourseReviews(id as string);
-      setReviews(reviewData);
-      setAverageRating(getAverageRating(reviewData));
-
-    } catch (e) {
-      console.log(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const openLesson = async (lesson: Lesson) => {
-    setSelectedLesson(lesson);
-
-    if (!user) return;
-
-    try {
-      await saveContinueLearning(user.uid, id as string, lesson.id);
-    } catch (e) {
-      console.log(e);
-    }
-  };
-
-  const openNotes = () => {
-    if (!selectedLesson) return;
-
-    router.push({
-      pathname: "/notes/[lessonId]",
-      params: {
-        lessonId: selectedLesson.id,
-      },
-    });
-  };
-
-  const startQuiz = (lessonId: string) => {
-    router.push(`/quiz/${lessonId}`);
-  };
-
-  const openAssignments = () => {
-    router.push(`/assignment/${id}`);
-  };
-
-  const buyCourse = async () => {
-    try {
-      setLoading(true);
-      await payForCourse(499, id as string, "teacher_123");
-      Alert.alert("Success", "Course Purchased Successfully!");
-      setAccess(true);
-    } catch (e) {
-      console.log(e);
-      Alert.alert("Payment Failed", "Unable to complete payment.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const wishlist = async () => {
-    try {
-      await addToWishlist(user?.uid || "demo-user", id as string);
-      Alert.alert("Wishlist", "Course added successfully ❤️");
-    } catch (e) {
-      console.log(e);
-      Alert.alert("Error", "Could not add course.");
-    }
-  };
-
-  const markCompleted = async (lessonId: string) => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      
-      await completeLesson(
-        user.uid,
-        id as string,
-        lessonId
-      );
-
-      const saved = await getProgress(
-        user.uid,
-        id as string
-      );
-
-      const safeUpdated = saved?.completedLessons ?? [];
-
-      setCompletedLessons(safeUpdated);
-
-      const percent = progressPercent(
-        safeUpdated.length,
-        lessons.length || 0
-      );
-
-      setProgress(percent);
-
-      const completed =
-        lessons.length > 0 &&
-        safeUpdated.length === lessons.length;
-
-      setCourseCompleted(completed);
-
-      if (completed) {
-        const existing = await getCertificate(
-          user.uid,
-          id as string
-        );
-
-        if (!existing) {
-          await generateCertificate(
-            user.uid,
-            id as string,
-            user.displayName || "Student",
-            "KnowledgeVerse Course"
-          );
-
-          Alert.alert(
-            "🎉 Congratulations!",
-            "Your course certificate has been generated."
-          );
-        }
+      if (found) {
+        setCourse(found);
       }
     } catch (e) {
       console.log(e);
@@ -269,259 +45,231 @@ export default function CourseDetail() {
     }
   };
 
-  const submitReview = async () => {
-    if (!user) return;
-
-    if (!reviewText.trim()) {
+  const handleBookmark = async () => {
+    if (!user || !course) {
       Alert.alert(
-        "Review Required",
-        "Please write a review."
+        "Login Required",
+        "Please login first."
       );
       return;
     }
 
     try {
-      setLoading(true);
-      await addReview({
-        courseId: id as string,
-        userId: user.uid,
-        userName: user.displayName || "Student",
-        rating,
-        review: reviewText.trim(),
+      await addBookmark(user.uid, {
+        courseId: course.id,
+        lessonId: course.id,
+        lessonTitle: course.title,
       });
 
-      Alert.alert("Success", "Review submitted.");
-      setReviewText("");
-      await loadCourse();
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
+      Alert.alert(
+        "Success",
+        "Course bookmarked successfully."
+      );
+    } catch (e) {
+      console.log(e);
+
+      Alert.alert(
+        "Error",
+        "Unable to save bookmark."
+      );
     }
   };
 
-  if (!access) {
+  if (loading) {
     return (
-      <PurchaseCard
-        price={499}
-        onWishlist={wishlist}
-        onBuy={buyCourse}
-      />
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#2563EB" />
+        <Text style={styles.loadingText}>Loading course...</Text>
+      </View>
     );
   }
 
-    return (
+  return (
     <ScrollView
-      style={Theme.screen} 
-      contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+      style={styles.container}
+      contentContainerStyle={styles.content}
     >
-      <CourseHeader
-        title="🎓 Course Lessons"
-        description="Continue learning where you left off."
+      {/* Banner */}
+      <CachedImage
+        uri={
+          course?.thumbnail ||
+          "https://placehold.co"
+        }
+        width="100%"
+        height={200}
+        borderRadius={18}
       />
 
-      <ProgressCard
-        title="📉 Course Progress"
-        value={progress}
-        subtitle={courseCompleted ? "🎉 Course Completed!" : `${progress}% Completed`}
-        color={Colors.primary}
-      />
+      {/* Title */}
+      <Text style={styles.title}>
+        {course?.title || "Course"}
+      </Text>
 
-      {selectedLesson && (
-        <View style={{ marginBottom: 10 }}>
-          <CoursePlayer
-            title={selectedLesson.title}
-            description={selectedLesson.description}
-            videoUrl={selectedLesson.videoUrl}
-            pdfUrl={selectedLesson.pdfUrl}
-          />
+      <Text style={styles.teacher}>
+        👨‍🏫 KnowledgeVerse
+      </Text>
 
-          <BookmarkButton
-            courseId={id as string}
-            lessonId={selectedLesson.id}
-            lessonTitle={selectedLesson.title}
-          />
+      {/* Stats */}
+      <View style={styles.stats}>
+        <Text style={styles.stat}>
+          ⭐ New Course
+        </Text>
 
-          <DownloadButton
-            courseId={id as string}
-            lessonId={selectedLesson.id}
-            lessonTitle={selectedLesson.title}
-          />
+        <Text style={styles.stat}>
+          📖 Learning Course
+        </Text>
 
-          <QuizCard
-            lessonId={selectedLesson.id}
-            onStart={startQuiz}
-          />
+        <Text style={styles.stat}>
+          ⏱ 8 hrs
+        </Text>
+      </View>
 
-          <TouchableOpacity
-            onPress={openNotes}
-            style={{
-              backgroundColor: Colors.primary, 
-              paddingVertical: 14,
-              borderRadius: 12,
-              marginTop: 15,
-              marginBottom: 20,
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ color: "white", fontWeight: "bold", fontSize: 17 }}>
-              📝 Open Lesson Notes
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Description */}
+      <Text style={styles.sectionTitle}>
+        Description
+      </Text>
 
-      <Text
-        style={[
-          Theme.text, 
-          {
-            fontSize: 22,
-            fontWeight: "bold",
-            marginBottom: 15,
-            marginTop: 10,
-          },
-        ]}
-      >
+      <Text style={styles.description}>
+        {course?.description || "No description available."}
+      </Text>
+
+      {/* Action Buttons */}
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => router.push(`/quiz/${course?.id}` as any)}
+        >
+          <Text style={styles.primaryText}>▶ Start Learning</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={handleBookmark}
+        >
+          <Text style={styles.secondaryText}>🔖 Bookmark</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={() => {
+            console.log("Wishlist:", course?.id);
+          }}
+        >
+          <Text style={styles.secondaryText}>❤️ Wishlist</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Lessons */}
+      <Text style={styles.sectionTitle}>
         Lessons
       </Text>
 
-      <LessonList
-        lessons={lessons}
-        selectedLesson={selectedLesson}
-        completedLessons={completedLessons}
-        onSelectLesson={openLesson}
-        onCompleteLesson={markCompleted}
-      />
-
-      <TouchableOpacity
-        onPress={openAssignments}
-        style={{
-          backgroundColor: Colors.success,
-          paddingVertical: 14,
-          borderRadius: 12,
-          marginTop: 25,
-          marginBottom: 10,
-          alignItems: "center",
-        }}
-      >
-        <Text
-          style={{
-            color: "white",
-            fontWeight: "bold",
-            fontSize: 16,
-          }}
-        >
-          📄 View Assignments
+      <View style={styles.lesson}>
+        <Text style={styles.lessonText}>
+          📖 Lesson 1
         </Text>
-      </TouchableOpacity>
-
-      {/* Ratings & Reviews */}
-      <View
-        style={{
-          marginTop: 30,
-          backgroundColor: "#111827",
-          borderRadius: 15,
-          padding: 18,
-        }}
-      >
-        <Text
-          style={{
-            color: "white",
-            fontSize: 22,
-            fontWeight: "bold",
-            marginBottom: 20,
-          }}
-        >
-          ⭐ Ratings & Reviews
-        </Text>
-
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginBottom: 20,
-          }}
-        >
-          <TouchableOpacity onPress={() => setRating(1)}>
-            <Text style={{ fontSize: 34, color: 1 <= rating ? "#FACC15" : "#6B7280" }}>★</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setRating(2)}>
-            <Text style={{ fontSize: 34, color: 2 <= rating ? "#FACC15" : "#6B7280" }}>★</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setRating(3)}>
-            <Text style={{ fontSize: 34, color: 3 <= rating ? "#FACC15" : "#6B7280" }}>★</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setRating(4)}>
-            <Text style={{ fontSize: 34, color: 4 <= rating ? "#FACC15" : "#6B7280" }}>★</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setRating(5)}>
-            <Text style={{ fontSize: 34, color: 5 <= rating ? "#FACC15" : "#6B7280" }}>★</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TextInput
-          value={reviewText}
-          onChangeText={setReviewText}
-          placeholder="Write your review..."
-          placeholderTextColor="#9CA3AF"
-          multiline
-          style={{
-            backgroundColor: "#1F2937",
-            color: "white",
-            borderRadius: 10,
-            padding: 14,
-            minHeight: 110,
-            textAlignVertical: "top",
-          }}
-        />
-
-        <TouchableOpacity
-          onPress={submitReview}
-          style={{
-            marginTop: 18,
-            backgroundColor: "#2563EB",
-            padding: 14,
-            borderRadius: 10,
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              color: "white",
-              fontWeight: "bold",
-            }}
-          >
-            Submit Review
-          </Text>
-        </TouchableOpacity>
-
-        <View style={{ marginTop: 25 }}>
-          {reviews.length === 0 ? (
-            <Text
-              style={{
-                color: "#9CA3AF",
-                textAlign: "center",
-              }}
-            >
-              No reviews yet.
-            </Text>
-          ) : (
-            reviews.map((item) => (
-              <ReviewCard
-                key={item.id || Math.random().toString()}
-                review={item}
-              />
-            ))
-          )}
-        </View>
       </View>
 
-      <CommentsSection
-        courseId={id as string}
-        userId={user?.uid ?? "demo-user"}
-        userName={user?.displayName ?? "Student"}
-      />
+      <View style={styles.lesson}>
+        <Text style={styles.lessonText}>
+          📖 Lesson 2
+        </Text>
+      </View>
 
+      <View style={styles.lesson}>
+        <Text style={styles.lessonText}>
+          📖 Lesson 3
+        </Text>
+      </View>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#0B1220",
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 50,
+  },
+  loading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#0B1220",
+  },
+  loadingText: {
+    color: "white",
+    marginTop: 15,
+  },
+  title: {
+    color: "white",
+    fontSize: 28,
+    fontWeight: "bold",
+    marginTop: 20,
+  },
+  teacher: {
+    color: "#9CA3AF",
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  stats: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 25,
+  },
+  stat: {
+    color: "#FACC15",
+    fontWeight: "bold",
+  },
+  sectionTitle: {
+    color: "white",
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 12,
+    marginTop: 20,
+  },
+  description: {
+    color: "#D1D5DB",
+    lineHeight: 24,
+  },
+  actions: {
+    marginTop: 24,
+  },
+  primaryButton: {
+    backgroundColor: "#2563EB",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  primaryText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  secondaryButton: {
+    backgroundColor: "#1F2937",
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  secondaryText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  lesson: {
+    backgroundColor: "#111827",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  lessonText: {
+    color: "white",
+    fontSize: 16,
+  },
+});

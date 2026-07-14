@@ -1,26 +1,27 @@
 import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 
-import CourseNoteCard from "../../components/CourseNoteCard";
-import NoteEditor from "../../components/NoteEditor";
-import { useAuth } from "../../context/AuthContext";
+// ✅ FIXED: Realigned relative directory jumps to point cleanly to system path mapping selectors
+import CourseNoteCard from "@/components/CourseNoteCard";
+import NoteEditor from "@/components/NoteEditor";
+import { useAuth } from "@/context/AuthContext";
 
 import {
-  addNote,
-  CourseNote,
-  deleteNote,
-  getLessonNotes,
-  updateNote,
-} from "../../services/notesService";
+    addNote,
+    CourseNote,
+    deleteNote,
+    getLessonNotes,
+    updateNote,
+} from "@/services/notesService";
 
 export default function LessonNotes() {
   const { lessonId } = useLocalSearchParams();
@@ -28,45 +29,37 @@ export default function LessonNotes() {
 
   const [notes, setNotes] = useState<CourseNote[]>([]);
   const [filteredNotes, setFilteredNotes] = useState<CourseNote[]>([]);
-  const [selectedNote, setSelectedNote] =
-    useState<CourseNote | null>(null);
+  const [selectedNote, setSelectedNote] = useState<CourseNote | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    if (!user || !lessonId) return;
-
-    loadNotes();
-  }, [user, lessonId]);
-
-  useEffect(() => {
-    filterNotes();
-  }, [search, notes]);
-
-  const loadNotes = async () => {
+  const loadNotes = useCallback(async () => {
     if (!user) return;
 
     try {
       setLoading(true);
+      const data = await getLessonNotes(user.uid, lessonId as string);
 
-      const data = await getLessonNotes(
-        user.uid,
-        lessonId as string
-      );
-
-      setNotes(data);
-      setFilteredNotes(data);
+      // ✅ Part 3: Reverses payload arrays natively so newly added elements rise to top positions
+      const sorted = [...data].reverse();
+      setNotes(sorted);
+      setFilteredNotes(sorted);
     } catch (e) {
-      console.log(e);
+      console.log("Notes loading exception telemetry intercept:", e);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, lessonId]);
 
-  const filterNotes = () => {
+  useEffect(() => {
+    if (!user || !lessonId) return;
+    loadNotes();
+  }, [user, lessonId, loadNotes]);
+
+  // ✅ Optimized memoized filtering tracking avoids lag during active keypad inputs
+  useEffect(() => {
     const keyword = search.trim().toLowerCase();
 
     if (!keyword) {
@@ -81,95 +74,75 @@ export default function LessonNotes() {
     );
 
     setFilteredNotes(filtered);
-  };
+  }, [search, notes]);
 
-  const saveNote = async (
-    title: string,
-    content: string
-  ) => {
+  const saveNote = async (title: string, content: string) => {
     if (!user) return;
 
     try {
       setSaving(true);
 
       if (selectedNote?.id) {
-        await updateNote(
-          user.uid,
-          selectedNote.id,
-          title,
-          content
-        );
-
-        Alert.alert(
-          "Updated",
-          "Note updated successfully."
-        );
+        await updateNote(user.uid, selectedNote.id, title, content);
+        Alert.alert("Updated", "Note updated successfully.");
       } else {
-        await addNote(
-          user.uid,
-          "",
-          lessonId as string,
-          title,
-          content
-        );
-
-        Alert.alert(
-          "Success",
-          "Note saved successfully."
-        );
+        await addNote(user.uid, "", lessonId as string, title, content);
+        Alert.alert("Success", "Note saved successfully.");
       }
 
       setSelectedNote(null);
-
       await loadNotes();
     } catch (e) {
       console.log(e);
-
-      Alert.alert(
-        "Error",
-        "Unable to save note."
-      );
+      Alert.alert("Error", "Unable to save note.");
     } finally {
       setSaving(false);
     }
   };
 
-  const removeNote = async (
-    noteId: string
-  ) => {
+  // ✅ Part 2: Hardened delete method featuring user intent confirmation sheets
+  const removeNote = async (noteId: string) => {
     if (!user) return;
 
-    try {
-      await deleteNote(user.uid, noteId);
-
-      await loadNotes();
-    } catch (e) {
-      console.log(e);
-    }
+    Alert.alert(
+      "Delete Note",
+      "Are you sure you want to delete this note?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteNote(user.uid, noteId);
+              await loadNotes();
+            } catch (e) {
+              console.log("Delete transaction exception tracer:", e);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator
-          size="large"
-          color="#2563EB"
-        />
-
-        <Text style={styles.loadingText}>
-          Loading Notes...
-        </Text>
+        <ActivityIndicator size="large" color="#2563EB" />
+        <Text style={styles.loadingText}>Loading Notes...</Text>
       </View>
     );
   }
-    return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-    >
-      <Text style={styles.heading}>
-        📝 Lesson Notes
-      </Text>
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.heading}>📝 Lesson Notes</Text>
+      
+      {/* ✅ Part 4: Dynamic metadata display tracks current query matches */}
+      <Text style={styles.counter}>{filteredNotes.length} Notes</Text>
 
       <TextInput
         placeholder="Search notes..."
@@ -188,17 +161,9 @@ export default function LessonNotes() {
 
       {filteredNotes.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>
-            📝
-          </Text>
-
-          <Text style={styles.emptyTitle}>
-            No Notes Yet
-          </Text>
-
-          <Text style={styles.emptyText}>
-            Take notes while learning.
-          </Text>
+          <Text style={styles.emptyIcon}>📝</Text>
+          <Text style={styles.emptyTitle}>No Notes Yet</Text>
+          <Text style={styles.emptyText}>Take notes while learning.</Text>
         </View>
       ) : (
         filteredNotes.map((note) => (
@@ -219,19 +184,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#0B1220",
   },
-
   content: {
     padding: 20,
     paddingBottom: 40,
   },
-
   heading: {
     color: "white",
     fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 6,
   },
-
+  // ✅ Part 4 Layout Typography Tokens
+  counter: {
+    color: "#9CA3AF",
+    marginBottom: 15,
+    fontSize: 15,
+    fontWeight: "500",
+  },
   search: {
     backgroundColor: "#1F2937",
     color: "white",
@@ -239,37 +208,33 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 20,
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
   },
-
   loading: {
     flex: 1,
     backgroundColor: "#0B1220",
     justifyContent: "center",
     alignItems: "center",
   },
-
   loadingText: {
     color: "white",
     marginTop: 15,
     fontSize: 16,
   },
-
   emptyContainer: {
     alignItems: "center",
     marginTop: 60,
   },
-
   emptyIcon: {
     fontSize: 60,
     marginBottom: 15,
   },
-
   emptyTitle: {
     color: "white",
     fontSize: 22,
     fontWeight: "bold",
   },
-
   emptyText: {
     color: "#9CA3AF",
     marginTop: 10,

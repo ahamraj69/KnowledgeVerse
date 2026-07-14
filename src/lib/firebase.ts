@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApp, getApps, initializeApp } from "firebase/app";
+import type { Auth } from "firebase/auth";
 import * as firebaseAuth from "firebase/auth";
 import { initializeAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -23,7 +24,8 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const getReactNativePersistence =
   (firebaseAuth as any).getReactNativePersistence;
 
-let auth;
+// Explicitly typed instance to conform with strict compiler tracking options
+let auth: Auth;
 
 try {
   auth = initializeAuth(app, {
