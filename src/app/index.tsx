@@ -41,8 +41,6 @@ export default function HomeScreen() {
   const openVoiceAI = useCallback(() => router.push("/voice-ai" as any), []);
   const openAIQuiz = useCallback(() => router.push("/ai-quiz" as any), []);
   const openStudyPlanner = useCallback(() => router.push("/study-planner" as any), []);
-  
-  // ✅ Added stable memoized routing callback for the AI Assignment pipeline
   const openAIAssignment = useCallback(() => router.push("/ai-assignment" as any), []);
 
   const openAnalytics = useCallback(() => router.push("/analytics" as any), []);
@@ -98,7 +96,6 @@ export default function HomeScreen() {
         <DashboardCard title="Voice AI" icon="🎤" color="#14B8A6" onPress={openVoiceAI} />
         <DashboardCard title="AI Quiz" icon="❓" color="#8B5CF6" onPress={openAIQuiz} />
         <DashboardCard title="Study Planner" icon="📅" color="#0EA5E9" onPress={openStudyPlanner} />
-        {/* ✅ Rendered AI Assignment option interface matrix node cleanly inside the grid layer */}
         <DashboardCard title="AI Assignment" icon="📝" color="#EC4899" onPress={openAIAssignment} />
       </View>
 

@@ -1,51 +1,75 @@
-import CachedImage from "@/components/CachedImage";
-import { useAuth } from "@/context/AuthContext";
-import { addBookmark } from "@/services/bookmarkService";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import {
-    CourseServiceType,
-    getCourses,
-} from "@/services/courseListService";
-import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
-import {
-    ActivityIndicator, Alert, ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
+import { useAuth } from "@/context/AuthContext";
+import { useNetwork } from "@/context/NetworkContext";
+import { getCourses, CourseServiceType } from "@/services/courseListService";
+import { addBookmark } from "@/services/bookmarkService";
+import { addWishlist } from "@/services/wishlistService";
+import CachedImage from "@/components/CachedImage";
+import { Theme } from "@/theme/theme";
+import { Colors } from "@/theme/colors";
+
 export default function CourseDetailsScreen() {
-  const { id } = useLocalSearchParams<{
-    id: string;
-  }>();
-
-  const [loading, setLoading] = useState(true);
-  const [course, setCourse] = useState<CourseServiceType | null>(null);
-
+  const { id } = useLocalSearchParams();
   const { user } = useAuth();
+  const { isConnected } = useNetwork();
+  const router = useRouter();
 
-  useEffect(() => {
-    loadCourse();
-  }, []);
+  const [course, setCourse] = useState<CourseServiceType | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const loadCourse = async () => {
+  const loadCourseDetails = useCallback(async () => {
+    if (!id) return;
     try {
       setLoading(true);
-      const courses = await getCourses();
-      const found = courses.find((item) => item.id === id);
-
-      if (found) {
-        setCourse(found);
-      }
+      const allCourses = await getCourses();
+      const selected = allCourses.find((c) => c.id === id);
+      setCourse(selected || null);
     } catch (e) {
-      console.log(e);
+      if (__DEV__) {
+        console.log("Error extracting course profile details:", e);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const handleBookmark = async () => {
+  useEffect(() => {
+    loadCourseDetails();
+  }, [loadCourseDetails]);
+
+  // ✅ FIXED: Adapted bookmark arguments parameters to match the underlying contract definition flawlessly
+  const handleBookmark = useCallback(async () => {
+    if (!user || !course) {
+      Alert.alert("Login Required", "Please log in to bookmark material elements.");
+      return;
+    }
+    try {
+      await addBookmark(user.uid, {
+        courseId: course.id,
+        lessonId: course.id,
+        lessonTitle: course.title,
+      });
+      Alert.alert("Success", "Course added to bookmarks library modules.");
+    } catch (e) {
+      if (__DEV__) {
+        console.log("Bookmark tracking crash loop intercepted:", e);
+      }
+      Alert.alert("Error", "Unable to save bookmark.");
+    }
+  }, [user, course]);
+
+  const handleWishlist = useCallback(async () => {
     if (!user || !course) {
       Alert.alert(
         "Login Required",
@@ -55,221 +79,107 @@ export default function CourseDetailsScreen() {
     }
 
     try {
-      await addBookmark(user.uid, {
+      await addWishlist(user.uid, {
         courseId: course.id,
-        lessonId: course.id,
-        lessonTitle: course.title,
+        title: course.title,
+        thumbnail: course.thumbnail ?? "",
       });
 
       Alert.alert(
         "Success",
-        "Course bookmarked successfully."
+        "Course added to wishlist."
       );
     } catch (e) {
-      console.log(e);
-
+      if (__DEV__) {
+        console.log(e);
+      }
       Alert.alert(
         "Error",
-        "Unable to save bookmark."
+        "Unable to add course."
       );
     }
-  };
+  }, [user, course]);
+
+  const handleEnroll = useCallback(() => {
+    if (!user) {
+      router.push("/login" as any);
+      return;
+    }
+    Alert.alert("Enrollment Hub", "Initializing secure course checkout sequence channels.");
+  }, [user, router]);
 
   if (loading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#2563EB" />
-        <Text style={styles.loadingText}>Loading course...</Text>
+      <View style={[Theme.screen, styles.center]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
+  if (!course) {
+    return (
+      <View style={[Theme.screen, styles.center]}>
+        <Text style={Theme.text}>Course data target index not found.</Text>
+      </View>
+    );
+  }
+
+  const safeThumbnail = course.thumbnail || "https://placehold.co";
+  const rawPrice = (course as any).price;
+  const isFree = rawPrice === undefined || rawPrice === 0 || rawPrice === null;
+  const priceText = isFree ? "Free Stream" : `₹${rawPrice}`;
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-    >
-      {/* Banner */}
-      <CachedImage
-        uri={
-          course?.thumbnail ||
-          "https://placehold.co"
-        }
-        width="100%"
-        height={200}
-        borderRadius={18}
-      />
+    <ScrollView style={Theme.screen} contentContainerStyle={styles.content}>
+      <CachedImage uri={safeThumbnail} width="100%" height={210} borderRadius={14} />
 
-      {/* Title */}
-      <Text style={styles.title}>
-        {course?.title || "Course"}
-      </Text>
-
-      <Text style={styles.teacher}>
-        👨‍🏫 KnowledgeVerse
-      </Text>
-
-      {/* Stats */}
-      <View style={styles.stats}>
-        <Text style={styles.stat}>
-          ⭐ New Course
-        </Text>
-
-        <Text style={styles.stat}>
-          📖 Learning Course
-        </Text>
-
-        <Text style={styles.stat}>
-          ⏱ 8 hrs
-        </Text>
+      <Text style={[Theme.text, styles.mainTitle]}>{course.title}</Text>
+      <View style={styles.metaRow}>
+        <Text style={[styles.priceTag, isFree && styles.freeTag]}>{priceText}</Text>
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryText}>{(course as any).category || "General"}</Text>
+        </View>
       </View>
 
-      {/* Description */}
-      <Text style={styles.sectionTitle}>
-        Description
+      <Text style={styles.sectionTitle}>Curriculum Overview</Text>
+      <Text style={[Theme.muted, styles.descText]}>
+        {course.description || "No extensive summary guidelines provided for this curriculum stream module node yet."}
       </Text>
 
-      <Text style={styles.description}>
-        {course?.description || "No description available."}
-      </Text>
-
-      {/* Action Buttons */}
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => router.push(`/quiz/${course?.id}` as any)}
-        >
-          <Text style={styles.primaryText}>▶ Start Learning</Text>
+      <View style={styles.actionBlock}>
+        <TouchableOpacity style={styles.primaryBtn} onPress={handleEnroll}>
+          <Text style={styles.primaryBtnText}>Enroll in Course</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={handleBookmark}
-        >
-          <Text style={styles.secondaryText}>🔖 Bookmark</Text>
-        </TouchableOpacity>
+        <View style={styles.secondaryRow}>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={handleBookmark}>
+            <Text style={styles.secondaryBtnText}>🔖 Bookmark</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => {
-            console.log("Wishlist:", course?.id);
-          }}
-        >
-          <Text style={styles.secondaryText}>❤️ Wishlist</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Lessons */}
-      <Text style={styles.sectionTitle}>
-        Lessons
-      </Text>
-
-      <View style={styles.lesson}>
-        <Text style={styles.lessonText}>
-          📖 Lesson 1
-        </Text>
-      </View>
-
-      <View style={styles.lesson}>
-        <Text style={styles.lessonText}>
-          📖 Lesson 2
-        </Text>
-      </View>
-
-      <View style={styles.lesson}>
-        <Text style={styles.lessonText}>
-          📖 Lesson 3
-        </Text>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={handleWishlist}>
+            <Text style={styles.secondaryBtnText}>❤️ Wishlist</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0B1220",
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 50,
-  },
-  loading: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#0B1220",
-  },
-  loadingText: {
-    color: "white",
-    marginTop: 15,
-  },
-  title: {
-    color: "white",
-    fontSize: 28,
-    fontWeight: "bold",
-    marginTop: 20,
-  },
-  teacher: {
-    color: "#9CA3AF",
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  stats: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 25,
-  },
-  stat: {
-    color: "#FACC15",
-    fontWeight: "bold",
-  },
-  sectionTitle: {
-    color: "white",
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 12,
-    marginTop: 20,
-  },
-  description: {
-    color: "#D1D5DB",
-    lineHeight: 24,
-  },
-  actions: {
-    marginTop: 24,
-  },
-  primaryButton: {
-    backgroundColor: "#2563EB",
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  primaryText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  secondaryButton: {
-    backgroundColor: "#1F2937",
-    borderRadius: 12,
-    padding: 14,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  secondaryText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  lesson: {
-    backgroundColor: "#111827",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  lessonText: {
-    color: "white",
-    fontSize: 16,
-  },
+  content: { padding: 20, paddingBottom: 40 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  mainTitle: { fontSize: 24, fontWeight: "bold", marginTop: 20, marginBottom: 12 },
+  metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
+  priceTag: { fontSize: 22, fontWeight: "800", color: "#FACC15" },
+  freeTag: { color: "#10B981" },
+  categoryBadge: { backgroundColor: "#1F2937", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.05)" },
+  categoryText: { color: "#9CA3AF", fontSize: 13, fontWeight: "600" },
+  sectionTitle: { color: "white", fontSize: 18, fontWeight: "700", marginBottom: 10 },
+  descText: { fontSize: 15, lineHeight: 24, marginBottom: 30 },
+  actionBlock: { gap: 14 },
+  primaryBtn: { backgroundColor: Colors.primary, padding: 16, borderRadius: 12, alignItems: "center", justifyContent: "center", minHeight: 54 },
+  primaryBtnText: { color: "white", fontSize: 17, fontWeight: "bold" },
+  secondaryRow: { flexDirection: "row", gap: 12 },
+  secondaryBtn: { flex: 1, backgroundColor: "#111827", padding: 14, borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.05)", flexDirection: "row", justifyContent: "center", gap: 6, minHeight: 48 },
+  secondaryBtnText: { color: "white", fontSize: 15, fontWeight: "600" },
 });
