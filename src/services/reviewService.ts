@@ -1,32 +1,60 @@
 import {
-  addDoc,
-  collection,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  where,
+    addDoc,
+    collection,
+    onSnapshot,
+    orderBy,
+    query,
+    serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 export interface Review {
-  id?: string;
+  id: string;
   courseId: string;
   userId: string;
   userName: string;
   rating: number;
-  review: string;
+  comment: string;
   createdAt?: any;
 }
 
-/**
- * Commits a brand new student review document to the Firestore server collection context.
- */
+export const subscribeReviews = (
+  courseId: string,
+  callback: (reviews: Review[]) => void
+) => {
+  const q = query(
+    collection(
+      db,
+      "courses",
+      courseId,
+      "reviews"
+    ),
+    orderBy("createdAt", "desc")
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    callback(
+      snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Review, "id">),
+      }))
+    );
+  });
+};
+
 export const addReview = async (
-  review: Review
-): Promise<void> => {
+  review: Omit<
+    Review,
+    "id" | "createdAt"
+  >
+) => {
   await addDoc(
-    collection(db, "reviews"),
+    collection(
+      db,
+      "courses",
+      review.courseId,
+      "reviews"
+    ),
     {
       ...review,
       createdAt: serverTimestamp(),
@@ -34,33 +62,10 @@ export const addReview = async (
   );
 };
 
-/**
- * Fetches all compiled reviews for a specific course ordered chronologically by newest first.
- */
-export const getCourseReviews = async (
-  courseId: string
-): Promise<Review[]> => {
-  const q = query(
-    collection(db, "reviews"),
-    where("courseId", "==", courseId),
-    orderBy("createdAt", "desc")
-  );
-
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Review),
-  }));
-};
-
-/**
- * Utility helper to calculate the single decimal average rating for an array of reviews.
- */
 export const getAverageRating = (
   reviews: Review[]
-): number => {
-  if (!reviews.length) return 0;
+) => {
+  if (reviews.length === 0) return 0;
 
   const total = reviews.reduce(
     (sum, item) => sum + item.rating,
