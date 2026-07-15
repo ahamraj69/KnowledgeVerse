@@ -84,6 +84,7 @@ export default function HomeScreen() {
         <DashboardCard title="Courses" icon="📚" color="#2563EB" onPress={openCourses} />
         <DashboardCard title="Explore" icon="🧭" color="#10B981" onPress={openExplore} />
         <DashboardCard title="Assignments" icon="📝" color="#0891B2" onPress={openAssignments} />
+        {/* ✅ FIXED PART 4: Standardized component mapping ensures visual dashboard consistency */}
         <DashboardCard title="Downloads" icon="⬇️" color="#7C3AED" onPress={openDownloads} />
         <DashboardCard title="Bookmarks" icon="🔖" color="#F59E0B" onPress={openBookmarks} />
         <DashboardCard title="Wishlist" icon="❤️" color="#DC2626" onPress={openWishlist} />

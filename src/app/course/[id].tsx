@@ -1,23 +1,29 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
 import { useNetwork } from "@/context/NetworkContext";
-import { getCourses, CourseServiceType } from "@/services/courseListService";
 import { addBookmark } from "@/services/bookmarkService";
+import { CourseServiceType, getCourses } from "@/services/courseListService";
 import { addWishlist } from "@/services/wishlistService";
+// ✅ Step 1: Mounted clean absolute path alias imports for the download service
 import CachedImage from "@/components/CachedImage";
-import { Theme } from "@/theme/theme";
+import {
+    addDownload,
+    isDownloaded,
+    removeDownload,
+} from "@/services/downloadService";
 import { Colors } from "@/theme/colors";
+import { Theme } from "@/theme/theme";
 
 export default function CourseDetailsScreen() {
   const { id } = useLocalSearchParams();
@@ -27,6 +33,9 @@ export default function CourseDetailsScreen() {
 
   const [course, setCourse] = useState<CourseServiceType | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // ✅ Step 2: Added download state hook tracker
+  const [downloaded, setDownloaded] = useState(false);
 
   const loadCourseDetails = useCallback(async () => {
     if (!id) return;
@@ -48,7 +57,24 @@ export default function CourseDetailsScreen() {
     loadCourseDetails();
   }, [loadCourseDetails]);
 
-  // ✅ FIXED: Adapted bookmark arguments parameters to match the underlying contract definition flawlessly
+  // ✅ Step 3: Check cached download state entries reactively upon data arrival
+  useEffect(() => {
+    if (!user?.uid || !course?.id) return;
+
+    const checkDownloadStatus = async () => {
+      try {
+        const exists = await isDownloaded(user.uid, course.id);
+        setDownloaded(exists);
+      } catch (e) {
+        if (__DEV__) {
+          console.log("Error fetching offline cache registry tracker:", e);
+        }
+      }
+    };
+
+    checkDownloadStatus();
+  }, [user, course]);
+
   const handleBookmark = useCallback(async () => {
     if (!user || !course) {
       Alert.alert("Login Required", "Please log in to bookmark material elements.");
@@ -71,10 +97,7 @@ export default function CourseDetailsScreen() {
 
   const handleWishlist = useCallback(async () => {
     if (!user || !course) {
-      Alert.alert(
-        "Login Required",
-        "Please login first."
-      );
+      Alert.alert("Login Required", "Please login first.");
       return;
     }
 
@@ -85,20 +108,51 @@ export default function CourseDetailsScreen() {
         thumbnail: course.thumbnail ?? "",
       });
 
+      Alert.alert("Success", "Course added to wishlist.");
+    } catch (e) {
+      if (__DEV__) {
+        console.log(e);
+      }
+      Alert.alert("Error", "Unable to add course.");
+    }
+  }, [user, course]);
+
+  // ✅ Step 4: Integrated asynchronous download handler method with toggle-safety loops
+  const handleDownload = useCallback(async () => {
+    if (!user?.uid || !course) {
       Alert.alert(
-        "Success",
-        "Course added to wishlist."
+        "Login Required",
+        "Please login first."
       );
+      return;
+    }
+
+    try {
+      if (downloaded) {
+        await removeDownload(user.uid, course.id);
+        setDownloaded(false);
+        Alert.alert("Removed", "Download removed.");
+        return;
+      }
+
+      await addDownload(user.uid, {
+        courseId: course.id,
+        lessonId: course.id,
+        lessonTitle: course.title,
+      });
+
+      setDownloaded(true);
+      Alert.alert("Success", "Course downloaded.");
     } catch (e) {
       if (__DEV__) {
         console.log(e);
       }
       Alert.alert(
         "Error",
-        "Unable to add course."
+        "Unable to download."
       );
     }
-  }, [user, course]);
+  }, [user?.uid, course, downloaded]);
 
   const handleEnroll = useCallback(() => {
     if (!user) {
@@ -160,6 +214,13 @@ export default function CourseDetailsScreen() {
             <Text style={styles.secondaryBtnText}>❤️ Wishlist</Text>
           </TouchableOpacity>
         </View>
+
+        {/* ✅ Step 5: Mounted responsive, type-safe Download button trigger right inside action layout */}
+        <TouchableOpacity style={styles.fullWidthSecondaryBtn} onPress={handleDownload}>
+          <Text style={styles.secondaryBtnText}>
+            {downloaded ? "🗑️ Remove Download" : "⬇️ Download Course"}
+          </Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -181,5 +242,6 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: "white", fontSize: 17, fontWeight: "bold" },
   secondaryRow: { flexDirection: "row", gap: 12 },
   secondaryBtn: { flex: 1, backgroundColor: "#111827", padding: 14, borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.05)", flexDirection: "row", justifyContent: "center", gap: 6, minHeight: 48 },
+  fullWidthSecondaryBtn: { width: "100%", backgroundColor: "#111827", padding: 14, borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.05)", flexDirection: "row", justifyContent: "center", gap: 6, minHeight: 48 },
   secondaryBtnText: { color: "white", fontSize: 15, fontWeight: "600" },
 });
