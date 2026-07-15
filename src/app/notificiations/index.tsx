@@ -8,13 +8,13 @@ import {
 } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
-// ✅ FIXED: Using the correct relative path and service function name matching the root service module
+// ✅ FIXED: Imported the correct service listener function name matching your module export declarations
 import {
     deleteNotification,
     markNotificationRead,
     NotificationItem,
     subscribeNotifications,
-} from "../services/notificationService";
+} from "@/services/notificationService";
 
 export default function NotificationsScreen() {
   const { user } = useAuth();
@@ -28,7 +28,7 @@ export default function NotificationsScreen() {
   useEffect(() => {
     if (!user?.uid) return;
 
-    // ✅ FIXED: Implemented the correct signature and replaced the liveNotes references completely
+    // ✅ FIXED: Connected the right listener module function with an explicitly typed clean callback signature
     const unsubscribe = subscribeNotifications(
       user.uid,
       (liveNotifications: NotificationItem[]) => {

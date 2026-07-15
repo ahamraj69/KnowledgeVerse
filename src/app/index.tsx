@@ -71,9 +71,22 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={Theme.screen} contentContainerStyle={styles.container}>
-      <Text style={[Theme.text, styles.welcomeTitle]}>
-        👋 Welcome, {user?.displayName || "Student"}
-      </Text>
+      {/* Container header area holds user title logs */}
+      <View style={styles.headerBlock}>
+        <Text style={[Theme.text, styles.welcomeTitle]}>
+          👋 Welcome, {user?.displayName || "Student"}
+        </Text>
+        
+        {/* ✅ Step 4 FIXED: Positioned shortcut navigation button container maps right here */}
+        <TouchableOpacity
+          onPress={openNotifications}
+          activeOpacity={0.7}
+          style={styles.floatingNotifyBtn}
+        >
+          <Text style={styles.floatingNotifyIcon}>🔔</Text>
+        </TouchableOpacity>
+      </View>
+      
       <Text style={[Theme.muted, styles.subtitle]}>
         Manage curriculum streams and telemetry tracking nodes.
       </Text>
@@ -84,7 +97,6 @@ export default function HomeScreen() {
         <DashboardCard title="Courses" icon="📚" color="#2563EB" onPress={openCourses} />
         <DashboardCard title="Explore" icon="🧭" color="#10B981" onPress={openExplore} />
         <DashboardCard title="Assignments" icon="📝" color="#0891B2" onPress={openAssignments} />
-        {/* ✅ FIXED PART 4: Standardized component mapping ensures visual dashboard consistency */}
         <DashboardCard title="Downloads" icon="⬇️" color="#7C3AED" onPress={openDownloads} />
         <DashboardCard title="Bookmarks" icon="🔖" color="#F59E0B" onPress={openBookmarks} />
         <DashboardCard title="Wishlist" icon="❤️" color="#DC2626" onPress={openWishlist} />
@@ -134,7 +146,24 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 20, paddingBottom: 40 },
-  welcomeTitle: { fontSize: 26, fontWeight: "bold", marginTop: 10 },
+  headerBlock: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10, position: "relative" },
+  welcomeTitle: { fontSize: 26, fontWeight: "bold", flex: 1, paddingRight: 60 },
+  // ✅ Step 4 Layout Styles mapped perfectly to prevent layout position distortion anomalies
+  floatingNotifyBtn: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: "#1F2937",
+    padding: 10,
+    borderRadius: 25,
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)"
+  },
+  floatingNotifyIcon: { fontSize: 20, textAlign: "center" },
   subtitle: { fontSize: 15, marginTop: 4, marginBottom: 10 },
   sectionTitle: { color: "white", fontSize: 22, fontWeight: "700", marginTop: 28, marginBottom: 12 },
   grid: { gap: 16 },

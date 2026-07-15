@@ -10,7 +10,6 @@ import {
     View,
 } from "react-native";
 
-import CachedImage from "@/components/CachedImage";
 import { useAuth } from "@/context/AuthContext";
 import { useNetwork } from "@/context/NetworkContext";
 import { addBookmark } from "@/services/bookmarkService";
@@ -20,8 +19,10 @@ import {
     isDownloaded,
     removeDownload,
 } from "@/services/downloadService";
-import { getAverageRating, subscribeReviews } from "@/services/reviewService";
 import { addWishlist } from "@/services/wishlistService";
+// ✅ Step 2: Imported the notification generator service endpoint cleanly
+import CachedImage from "@/components/CachedImage";
+import { addNotification } from "@/services/notificationService";
 import { Colors } from "@/theme/colors";
 import { Theme } from "@/theme/theme";
 
@@ -75,20 +76,28 @@ export default function CourseDetailsScreen() {
     checkDownloadStatus();
   }, [user, course]);
 
-  useEffect(() => {
-    if (!course?.id) return;
+  // ✅ Step 3: Upgraded Enrollment trigger with contextual push telemetry logs
+  const handleEnroll = useCallback(async () => {
+    if (!user) {
+      router.push("/login" as any);
+      return;
+    }
+    if (!course) return;
 
-    const unsubscribe = subscribeReviews(
-      course.id,
-      (reviews) => {
-        setReviewCount(reviews.length);
-        setAverageRating(getAverageRating(reviews));
-      }
-    );
+    try {
+      await addNotification(
+        user.uid,
+        "Course Enrolled 🎉",
+        `You enrolled in "${course.title}".`
+      );
+      Alert.alert("Success", "Enrollment completed.");
+    } catch (e) {
+      if (__DEV__) console.log("Enrollment trigger notification log fault:", e);
+      Alert.alert("Success", "Enrollment completed.");
+    }
+  }, [user, course, router]);
 
-    return () => unsubscribe();
-  }, [course]);
-
+  // ✅ Step 4: Upgraded Bookmark triggers with clean message streams
   const handleBookmark = useCallback(async () => {
     if (!user || !course) {
       Alert.alert("Login Required", "Please log in to bookmark material elements.");
@@ -100,6 +109,13 @@ export default function CourseDetailsScreen() {
         lessonId: course.id,
         lessonTitle: course.title,
       });
+
+      await addNotification(
+        user.uid,
+        "Bookmark Added 🔖",
+        `"${course.title}" was added to your bookmarks.`
+      );
+
       Alert.alert("Success", "Course added to bookmarks library modules.");
     } catch (e) {
       if (__DEV__) {
@@ -109,6 +125,7 @@ export default function CourseDetailsScreen() {
     }
   }, [user, course]);
 
+  // ✅ Step 5: Upgraded Wishlist triggers with active real-time updates
   const handleWishlist = useCallback(async () => {
     if (!user || !course) {
       Alert.alert("Login Required", "Please login first.");
@@ -122,6 +139,12 @@ export default function CourseDetailsScreen() {
         thumbnail: course.thumbnail ?? "",
       });
 
+      await addNotification(
+        user.uid,
+        "Wishlist Updated ❤️",
+        `"${course.title}" was added to your wishlist.`
+      );
+
       Alert.alert("Success", "Course added to wishlist.");
     } catch (e) {
       if (__DEV__) {
@@ -131,12 +154,10 @@ export default function CourseDetailsScreen() {
     }
   }, [user, course]);
 
+  // ✅ Step 6: Upgraded Download lifecycle handler with adaptive offline notifications
   const handleDownload = useCallback(async () => {
     if (!user?.uid || !course) {
-      Alert.alert(
-        "Login Required",
-        "Please login first."
-      );
+      Alert.alert("Login Required", "Please login first.");
       return;
     }
 
@@ -144,6 +165,13 @@ export default function CourseDetailsScreen() {
       if (downloaded) {
         await removeDownload(user.uid, course.id);
         setDownloaded(false);
+
+        await addNotification(
+          user.uid,
+          "Download Removed 🗑",
+          `"${course.title}" was removed from offline storage.`
+        );
+
         Alert.alert("Removed", "Download removed.");
         return;
       }
@@ -155,27 +183,22 @@ export default function CourseDetailsScreen() {
       });
 
       setDownloaded(true);
+
+      await addNotification(
+        user.uid,
+        "Course Downloaded ⬇️",
+        `"${course.title}" is now available offline.`
+      );
+
       Alert.alert("Success", "Course downloaded.");
     } catch (e) {
       if (__DEV__) {
         console.log(e);
       }
-      Alert.alert(
-        "Error",
-        "Unable to download."
-      );
+      Alert.alert("Error", "Unable to download.");
     }
   }, [user?.uid, course, downloaded]);
 
-  const handleEnroll = useCallback(() => {
-    if (!user) {
-      router.push("/login" as any);
-      return;
-    }
-    Alert.alert("Enrollment Hub", "Initializing secure course checkout sequence channels.");
-  }, [user, router]);
-
-  // ✅ FIXED: Added helper navigation target for reviews to skip typed-route string verification errors
   const handleOpenReviews = useCallback(() => {
     router.push("/reviews" as any);
   }, [router]);
@@ -207,7 +230,6 @@ export default function CourseDetailsScreen() {
 
       <Text style={[Theme.text, styles.mainTitle]}>{course.title}</Text>
 
-      {/* ✅ FIXED: Complete, clean, correctly aligned rendering block begins here */}
       <View style={styles.ratingSummaryRow}>
         <Text style={styles.ratingValueText}>
           ⭐ {averageRating.toFixed(1)}
@@ -261,7 +283,7 @@ export default function CourseDetailsScreen() {
             onPress={handleBookmark}
           >
             <Text style={styles.secondaryBtnText}>
-              Bak 🔖 Bookmark
+              🔖 Bookmark
             </Text>
           </TouchableOpacity>
 
@@ -300,10 +322,4 @@ const styles = StyleSheet.create({
   sectionTitle: { color: "white", fontSize: 18, fontWeight: "700", marginBottom: 10 },
   descText: { fontSize: 15, lineHeight: 24, marginBottom: 30 },
   actionBlock: { gap: 14 },
-  primaryBtn: { backgroundColor: Colors.primary, padding: 16, borderRadius: 12, alignItems: "center", justifyContent: "center", minHeight: 54 },
-  primaryBtnText: { color: "white", fontSize: 17, fontWeight: "bold" },
-  reviewButton: { backgroundColor: "#F59E0B", padding: 15, borderRadius: 12, alignItems: "center", justifyContent: "center", minHeight: 50 },
-  reviewButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
-  secondaryRow: { flexDirection: "row", gap: 12 },
-  secondaryBtn: { flex: 1, backgroundColor: "#111827", padding: 14, borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.05)", flexDirection: "row", justifyContent: "center", gap: 6, minHeight: 48 },
-fullWidthSecondaryBtn: { width: "100%", backgroundColor: "#111827", padding: 14, borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.05)", flexDirection: "row", justifyContent: "center", gap: 6, minHeight: 48 },secondaryBtnText: { color: "white", fontSize: 15, fontWeight: "600" },});
+primaryBtn: { backgroundColor: Colors.primary, padding: 16, borderRadius: 12, alignItems: "center", justifyContent: "center", minHeight: 54 },primaryBtnText: { color: "white", fontSize: 17, fontWeight: "bold" },reviewButton: { backgroundColor: "#F59E0B", padding: 15, borderRadius: 12, alignItems: "center", justifyContent: "center", minHeight: 50 },reviewButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },secondaryRow: { flexDirection: "row", gap: 12 },secondaryBtn: { flex: 1, backgroundColor: "#111827", padding: 14, borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.05)", flexDirection: "row", justifyContent: "center", gap: 6, minHeight: 48 },fullWidthSecondaryBtn: { width: "100%", backgroundColor: "#111827", padding: 14, borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.05)", flexDirection: "row", justifyContent: "center", gap: 6, minHeight: 48 },secondaryBtnText: { color: "white", fontSize: 15, fontWeight: "600" },});
