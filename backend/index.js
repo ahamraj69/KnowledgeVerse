@@ -2,26 +2,29 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { Groq } = require("groq-sdk");
-// ✅ FIXED: Using pure uniform CommonJS require statements
+
+// Pure CommonJS module sub-router dependencies registration
 const pdfRoutes = require("./pdfRoutes");
 
-console.log("1. dotenv loaded");
+console.log("1. Environment variables initialization phase triggered...");
 
+// Initialize environmental configurations
 dotenv.config();
 
+// Diagnostic Logger: Verifies .env parameters status in your terminal console instantly
 console.log("GROQ KEY STATUS MATCH:", process.env.GROQ_API_KEY ? "Loaded ✅" : "Missing ❌");
 
 const app = express();
 
-console.log("2. express created");
+console.log("2. Express app client context created");
 
 app.use(cors());
 app.use(express.json());
 
-console.log("3. middleware loaded");
+console.log("3. Middleware layers (CORS & JSON parsers) attached successfully");
 
 if (!process.env.GROQ_API_KEY) {
-  console.error("❌ GROQ_API_KEY not found in .env");
+  console.error("❌ Fatal Configuration Blocker: GROQ_API_KEY not found in active .env environment.");
   process.exit(1);
 }
 
@@ -29,12 +32,12 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-// Test Route
+// Test Root Route
 app.get("/", (req, res) => {
-  res.send("KnowledgeVerse Backend Running 🚀");
+  res.send("KnowledgeVerse Backend Running Successfully 🚀");
 });
 
-// Chat Route
+// AI Tutor Chat Route Pipeline
 app.post("/chat", async (req, res) => {
   try {
     const { message, history = [] } = req.body;
@@ -63,28 +66,98 @@ app.post("/chat", async (req, res) => {
     });
 
     res.json({
-      reply: completion.choices[0].message.content,
+      reply: completion.choices.message.content,
     });
   } catch (error) {
-    console.error("========== GROQ ERROR ==========");
+    console.error("========== GROQ TELEMETRY ERROR ==========");
     console.error(error);
-    console.error("================================");
+    console.error("==========================================");
 
     res.status(500).json({
-      reply: "Chat error occurred",
+      reply: "An internal chat error occurred during prompt generation.",
     });
   }
 });
 
-// Register PDF routes
+// Registered localized document parsing sub-routers matrix paths
 app.use("/pdf", pdfRoutes);
 
-console.log("4. before app.listen");
+// AI Flashcard Generator Route Inline 
+app.post("/flashcards", async (req, res) => {
+  try {
+    const { topic } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({
+        cards: [],
+      });
+    }
+
+    const prompt = `
+Generate exactly 10 educational flashcards.
+
+Topic:
+${topic}
+
+Return ONLY valid JSON.
+
+Example:
+
+[
+  {
+    "question":"...",
+    "answer":"..."
+  }
+]
+`;
+
+    const completion =
+      await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.4,
+      });
+
+    const response = completion.choices[0].message.content;
+
+    let cards = [];
+
+    // ✅ Step 1 FIXED: Cleans markdown fence blocks robustly before JSON translation loops
+    try {
+      const clean = response
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+
+      cards = JSON.parse(clean);
+    } catch (err) {
+      console.log("Flashcard JSON Parse Error:", err);
+      cards = [];
+    }
+
+    res.json({
+      cards,
+    });
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      cards: [],
+    });
+  }
+});
+
+console.log("4. Operational route endpoints registered. Initializing app.listen...");
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Success: Server running cleanly on http://localhost:${PORT}`);
 });
 
-console.log("5. after app.listen");
+console.log("5. Lifecycle boot check completed execution loop.");
