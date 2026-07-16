@@ -66,7 +66,7 @@ app.post("/chat", async (req, res) => {
     });
 
     res.json({
-      reply: completion.choices[0].message.content,
+      reply: completion.choices.message.content,
     });
   } catch (error) {
     console.error("========== GROQ TELEMETRY ERROR ==========");
@@ -122,7 +122,7 @@ Example:
         temperature: 0.4,
       });
 
-    const response = completion.choices[0].message.content;
+    const response = completion.choices.message.content;
 
     let cards = [];
 
@@ -146,6 +146,58 @@ Example:
 
     res.status(500).json({
       cards: [],
+    });
+  }
+});
+
+// ============================================================================
+// ✅ FIXED PHASE 41 PART 1: Enhanced AI Assignment Generator Endpoint
+// ============================================================================
+app.post("/assignment", async (req, res) => {
+  try {
+    const { topic, type, difficulty } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({
+        result: "",
+      });
+    }
+
+    const prompt = `
+You are an expert teacher.
+
+Create a ${difficulty} level ${type} about:
+
+${topic}
+
+Rules:
+- Write clearly.
+- Suitable for students.
+- Well formatted.
+- Include headings where appropriate.
+- Do not include markdown.
+`;
+
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.6,
+      max_tokens: 1200,
+    });
+
+    res.json({
+      result: completion.choices[0].message.content,
+    });
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      result: "Unable to generate assignment.",
     });
   }
 });
