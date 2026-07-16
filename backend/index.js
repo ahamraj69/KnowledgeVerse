@@ -2,13 +2,23 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { Groq } = require("groq-sdk");
+// ✅ FIXED: Using pure uniform CommonJS require statements
+const pdfRoutes = require("./pdfRoutes");
+
+console.log("1. dotenv loaded");
 
 dotenv.config();
 
+console.log("GROQ KEY STATUS MATCH:", process.env.GROQ_API_KEY ? "Loaded ✅" : "Missing ❌");
+
 const app = express();
+
+console.log("2. express created");
 
 app.use(cors());
 app.use(express.json());
+
+console.log("3. middleware loaded");
 
 if (!process.env.GROQ_API_KEY) {
   console.error("❌ GROQ_API_KEY not found in .env");
@@ -66,8 +76,15 @@ app.post("/chat", async (req, res) => {
   }
 });
 
+// Register PDF routes
+app.use("/pdf", pdfRoutes);
+
+console.log("4. before app.listen");
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
+console.log("5. after app.listen");
