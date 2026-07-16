@@ -71,13 +71,11 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={Theme.screen} contentContainerStyle={styles.container}>
-      {/* Container header area holds user title logs */}
       <View style={styles.headerBlock}>
         <Text style={[Theme.text, styles.welcomeTitle]}>
           👋 Welcome, {user?.displayName || "Student"}
         </Text>
         
-        {/* ✅ Step 4 FIXED: Positioned shortcut navigation button container maps right here */}
         <TouchableOpacity
           onPress={openNotifications}
           activeOpacity={0.7}
@@ -148,7 +146,6 @@ const styles = StyleSheet.create({
   container: { padding: 20, paddingBottom: 40 },
   headerBlock: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10, position: "relative" },
   welcomeTitle: { fontSize: 26, fontWeight: "bold", flex: 1, paddingRight: 60 },
-  // ✅ Step 4 Layout Styles mapped perfectly to prevent layout position distortion anomalies
   floatingNotifyBtn: {
     position: "absolute",
     top: 0,

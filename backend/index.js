@@ -66,7 +66,7 @@ app.post("/chat", async (req, res) => {
     });
 
     res.json({
-      reply: completion.choices.message.content,
+      reply: completion.choices[0].message.content,
     });
   } catch (error) {
     console.error("========== GROQ TELEMETRY ERROR ==========");
@@ -111,8 +111,7 @@ Example:
 ]
 `;
 
-    const completion =
-      await groq.chat.completions.create({
+    const completion = await groq.chat.completions.create({
         model: "llama-3.3-70b-versatile",
         messages: [
           {
@@ -127,7 +126,6 @@ Example:
 
     let cards = [];
 
-    // ✅ Step 1 FIXED: Cleans markdown fence blocks robustly before JSON translation loops
     try {
       const clean = response
         .replace(/```json/g, "")
