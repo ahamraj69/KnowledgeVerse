@@ -8,7 +8,6 @@ import { auth, db } from "../lib/firebase";
 import { Colors } from "../theme/colors";
 import { Theme } from "../theme/theme";
 
-// ✅ FIXED: Enforced explicit default export declaration for path synchronization loops
 export default function SignupScreen() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -38,11 +37,14 @@ export default function SignupScreen() {
 
       await updateProfile(secureUserRef, { displayName: cleanName });
 
+      // ✅ FIXED: Standardized target document record schema inline to support Profile views flawlessly
       await setDoc(doc(db, "users", secureUserRef.uid), {
         uid: secureUserRef.uid,
         name: cleanName,
         email: secureUserRef.email, 
         role: "student", 
+        bio: "",
+        photoURL: "",
         createdAt: Date.now(), 
       });
 
