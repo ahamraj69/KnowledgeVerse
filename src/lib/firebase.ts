@@ -4,9 +4,10 @@ import type { Auth } from "firebase/auth";
 import * as firebaseAuth from "firebase/auth";
 import { initializeAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+// ✅ FIXED: Storage client initialization functions registered natively
 import { getStorage } from "firebase/storage";
 
-// 1. Firebase configuration
+// 1. Centralized production-grade Firebase instance credential settings
 const firebaseConfig = {
   apiKey: "AIzaSyAr38ZS9tnCifA2stYihZ6uO5Y4v40BAAw",
   authDomain: "knowledgeverse-123.firebaseapp.com",
@@ -16,15 +17,13 @@ const firebaseConfig = {
   appId: "1:833231039240:web:43a66c0f5c997b6ff79abd",
 };
 
-// 2. Prevent re-initialization during hot reloads
+// 2. Prevent instance re-initialization leaks during hot reloads or state cycles
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// 3. Cast the dynamic package module to get the React Native persistence handler
-// This bypasses the strict type error while keeping the correct function at runtime
-const getReactNativePersistence =
-  (firebaseAuth as any).getReactNativePersistence;
+// 3. Extract the React Native persistence driver from the module block safely
+const getReactNativePersistence = (firebaseAuth as any).getReactNativePersistence;
 
-// Explicitly typed instance to conform with strict compiler tracking options
+// Explicitly typed instance handles user credential tokens natively
 let auth: Auth;
 
 try {
@@ -32,10 +31,13 @@ try {
     persistence: getReactNativePersistence(AsyncStorage),
   });
 } catch {
+  // Graceful fallback prevents thread crashes if hot-reload invokes initializeAuth twice
   auth = firebaseAuth.getAuth(app);
 }
 
+// 4. Initialized state mapping handles
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+// Universal modular system exports
 export { app, auth, db, storage };

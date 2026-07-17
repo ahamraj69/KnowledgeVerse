@@ -37,7 +37,7 @@ export default function SignupScreen() {
 
       await updateProfile(secureUserRef, { displayName: cleanName });
 
-      // ✅ FIXED: Standardized target document record schema inline to support Profile views flawlessly
+      // ✅ RESTORED: Standard base document data creation model
       await setDoc(doc(db, "users", secureUserRef.uid), {
         uid: secureUserRef.uid,
         name: cleanName,
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.05)",
     fontSize: 16,
   },
-  btn: { padding: 16, borderRadius: 12, alignItems: "center", marginTop: 10 },
+  btn: { padding: 16, borderRadius: 12, alignItems: "center", marginTop: 10, minHeight: 52, justifyContent: "center" },
   btnText: { fontWeight: "bold", fontSize: 17 },
   linkGap: { marginTop: 20 },
   linkText: { color: "#2563EB", fontWeight: "600", textAlign: "center" }

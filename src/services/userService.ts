@@ -11,14 +11,14 @@ export interface UserProfile {
 }
 
 /**
- * Commits or patches a user profile document inside the centralized users Firestore index [INDEX].
+ * Commits or patches a user profile document inside the centralized users Firestore index.
  */
 export const saveUserProfile = async (profile: UserProfile): Promise<void> => {
   await setDoc(doc(db, "users", profile.uid), profile, { merge: true });
 };
 
 /**
- * Extracts explicit user metadata information safely out of the cloud datastore rows [INDEX].
+ * Extracts explicit user metadata information safely out of the cloud datastore rows.
  */
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
   const snap = await getDoc(doc(db, "users", uid));
@@ -29,7 +29,7 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 };
 
 /**
- * ✅ Step 1: Submits asynchronous partial document state object modifications natively
+ * Submits asynchronous partial document state object modifications natively.
  */
 export const updateUserProfile = async (
   uid: string,
