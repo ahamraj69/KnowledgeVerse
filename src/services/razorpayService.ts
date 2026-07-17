@@ -1,9 +1,9 @@
 import RazorpayCheckout from "react-native-razorpay";
-import { savePayment } from "./paymentService"; // ✅ FIX: Swapped undefined createPayment import with your exported savePayment function
-import { subscribeToCourse } from "./subscriptionService";
+// ✅ FIXED: Using your exact exported database logger function reference smoothly
+import { savePayment } from "./paymentService";
 
 /**
- * 💳 REAL PAYMENT FLOW
+ * 💳 Razorpay Core Transaction Gateway Engine Pipeline
  */
 export const payForCourse = async (
   amount: number,
@@ -14,9 +14,9 @@ export const payForCourse = async (
     const options = {
       description: "Course Purchase",
       currency: "INR",
-      amount: amount * 100, // conversion to paise
+      amount: amount * 100, // Conversion from Rupees to Paise tracking indices
       name: "KnowledgeVerse",
-      key: "YOUR_RAZORPAY_KEY", // Replace with your active dashboard credentials key later
+      key: "YOUR_RAZORPAY_KEY", // Replace with your active live dashboard credentials key later
       theme: { color: "#2563EB" },
     };
 
@@ -24,9 +24,15 @@ export const payForCourse = async (
       .then(async (data: any) => {
         // PAYMENT SUCCESS PIPELINE
         try {
-          await subscribeToCourse(courseId);
-          
-          // ✅ FIX: Repointed internal callback trigger to savePayment to clear missing member compiler issues
+          // ✅ FIXED: Replaced legacy non-existent function with clear task roadmap pointers
+          // TODO:
+          // After successful payment,
+          // unlock the purchased course.
+          //
+          // This will be implemented in
+          // the Premium Membership / Purchase
+          // system (Phase 46).
+
           await savePayment(teacherId, amount);
 
           resolve({
@@ -34,12 +40,12 @@ export const payForCourse = async (
             paymentId: data.razorpay_payment_id,
           });
         } catch (dbError) {
-          console.log("Database subscription update failed:", dbError);
+          console.log("Database update tracking failed:", dbError);
           reject(dbError);
         }
       })
       .catch((error: any) => {
-        console.log("Payment Failed", error);
+        console.log("Payment Gateway Transaction Failed:", error);
         reject(error);
       });
   });
