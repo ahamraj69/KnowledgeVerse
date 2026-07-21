@@ -11,8 +11,8 @@ import {
 } from "react-native";
 
 import { db } from "../../lib/firebase";
-import { deleteCourse } from "../../services/deleteCourseService";
-import { publishCourse } from "../../services/publishCourseService";
+import { deleteCourse } from "@/lib/deleteCourseService";
+import { publishCourse } from "@/lib/publishCourseService";
 import { Colors } from "../../theme/colors";
 import { Theme } from "../../theme/theme";
 

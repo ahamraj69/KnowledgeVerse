@@ -7,7 +7,7 @@ import {
     View,
 } from "react-native";
 
-import { pickAndUploadVideo } from "../../services/videoUploadService";
+import { pickAndUploadVideo } from "@/lib/videoUploadService";
 
 export default function UploadVideo() {
   const [loading, setLoading] = useState(false);

@@ -21,7 +21,7 @@ import {
     deleteNote,
     getLessonNotes,
     updateNote,
-} from "@/services/notesService";
+} from "@/lib/notesService";
 
 export default function LessonNotes() {
   const { lessonId } = useLocalSearchParams();

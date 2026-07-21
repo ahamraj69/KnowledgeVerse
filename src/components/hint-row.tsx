@@ -1,35 +1,36 @@
-import type { ReactNode } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from "react-native";
 
-import { ThemedText } from './themed-text';
-import { ThemedView } from './themed-view';
+interface HintRowProps {
+  text: string;
+  type?: "info" | "warning";
+}
 
-import { Spacing } from '@/constants/theme';
-
-type HintRowProps = {
-  title?: string;
-  hint?: ReactNode;
-};
-
-export function HintRow({ title = 'Try editing', hint = 'app/index.tsx' }: HintRowProps) {
+export default function HintRow({ text, type = "info" }: HintRowProps) {
+  const isWarning = type === "warning";
+  
   return (
-    <View style={styles.stepRow}>
-      <ThemedText type="small">{title}</ThemedText>
-      <ThemedView type="backgroundSelected" style={styles.codeSnippet}>
-        <ThemedText themeColor="textSecondary">{hint}</ThemedText>
-      </ThemedView>
+    <View style={[styles.row, isWarning ? styles.warningRow : styles.infoRow]}>
+      <Text style={styles.icon}>{isWarning ? "⚠️" : "💡"}</Text>
+      <Text style={[styles.hintText, isWarning ? styles.warningText : styles.infoText]}>
+        {text}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  stepRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  row: {
+    flexDirection: "row",
+    padding: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    marginVertical: 8,
+    borderWidth: 1,
   },
-  codeSnippet: {
-    borderRadius: Spacing.two,
-    paddingVertical: Spacing.half,
-    paddingHorizontal: Spacing.two,
-  },
+  infoRow: { backgroundColor: "rgba(37,99,235,0.08)", borderColor: "rgba(37,99,235,0.15)" },
+  warningRow: { backgroundColor: "rgba(217,119,6,0.08)", borderColor: "rgba(217,119,6,0.15)" },
+  icon: { fontSize: 16, marginRight: 10 },
+  hintText: { flex: 1, fontSize: 14, lineHeight: 20 },
+  infoText: { color: "#38BDF8" },
+  warningText: { color: "#FBBF24" },
 });

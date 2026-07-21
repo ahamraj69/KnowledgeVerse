@@ -1,90 +1,70 @@
-import { useFocusEffect } from "expo-router";
-import { memo, useCallback, useMemo, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import BookmarkCard from "@/components/BookmarkCard";
+import { useAuth } from "@/context/AuthContext";
+import { removeBookmark, subscribeToBookmarks } from "@/lib/bookmarkService";
+import { Theme } from "@/theme/theme";
+import { Bookmark } from "@/types/chat";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
 
-import BookmarkCard from "../../components/BookmarkCard";
-import EmptyState from "../../components/EmptyState"; // ✅ Phase 23.2
-import SkeletonCard from "../../components/SkeletonCard"; // ✅ Phase 23.1
-import { useAuth } from "../../context/AuthContext";
-import { Bookmark, subscribeToBookmarks } from "../../services/bookmarkService";
-import { Theme } from "../../theme/theme";
-
-function BookmarksScreen() {
+export default function BookmarksScreen() {
+  const router = useRouter();
   const { user } = useAuth();
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // ✅ Phase 23.3
 
-  const connectListener = useCallback(() => {
-    if (!user?.uid) return () => {};
-    return subscribeToBookmarks(user.uid, (liveBookmarks) => {
-      setBookmarks(liveBookmarks);
-      setLoading(false);
-      setRefreshing(false);
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsubscribe = subscribeToBookmarks(user.uid, (liveBookmarks: Bookmark[]) => {
+      // ✅ FIXED: Sorted chronologically using absolute numeric values directly without using .seconds
+      const sorted = liveBookmarks.sort((a, b) => {
+        const timeA = typeof a.createdAt === "number" ? a.createdAt : 0;
+        const timeB = typeof b.createdAt === "number" ? b.createdAt : 0;
+        return timeB - timeA;
+      });
+      setBookmarks(sorted);
+      setCorners(false);
     });
-  }, [user?.uid]);
+    return unsubscribe;
+  }, [user]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!user?.uid) return;
-      setLoading(true);
-      const unsubscribe = connectListener();
-      return () => unsubscribe();
-    }, [user?.uid, connectListener])
-  );
+  function setCorners(val: boolean) {
+    setLoading(val);
+  }
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    const unsubscribe = connectListener();
-    setTimeout(() => {
-      unsubscribe();
-      setRefreshing(false);
-    }, 1500);
-  }, [connectListener]);
+  const handleOpenCourse = (courseId: string) => {
+    router.push(`/course/${courseId}` as any);
+  };
 
-  const sortedBookmarks = useMemo(() => {
-    return [...bookmarks].sort((a: Bookmark, b: Bookmark) => {
-      const timeA = a.createdAt?.seconds || 0;
-      const timeB = b.createdAt?.seconds || 0;
-      return timeB - timeA;
-    });
-  }, [bookmarks]);
+  const handleDelete = async (id: string) => {
+    if (!user?.uid) return;
+    const matched = bookmarks.find(b => b.id === id);
+    if (matched) {
+      await removeBookmark(user.uid, matched.lessonId);
+    }
+  };
 
-  const renderItem = useCallback(({ item }: { item: Bookmark }) => (
-    <BookmarkCard bookmark={item} onOpen={async () => {}} onDelete={async () => {}} />
-  ), []);
-
-  // ✅ Phase 23.1: Structural skeleton loading placeholder elements masking network delays
-  if (loading && !refreshing) {
+  if (loading) {
     return (
-      <View style={[Theme.screen, styles.paddingGrid]}>
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonCard />
+      <View style={[Theme.screen, styles.center]}>
+        <ActivityIndicator size="large" color="#38BDF8" />
       </View>
     );
   }
 
   return (
-    <View style={Theme.screen}>
+    <View style={[Theme.screen, styles.container]}>
+      <Text style={styles.headerTitle}>🔖 Saved Lessons</Text>
       <FlatList
-        data={sortedBookmarks}
+        data={bookmarks}
         keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        removeClippedSubviews={true}
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
-        windowSize={5}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />
-        }
-        // ✅ Phase 23.2: Clean empty illustrations framework
+        renderItem={({ item }) => (
+          <BookmarkCard bookmark={item} onOpen={handleOpenCourse} onDelete={handleDelete} />
+        )}
         ListEmptyComponent={
-          <EmptyState 
-            icon="🔖" 
-            title="No Bookmarks Found" 
-            subtitle="Save references inside course lectures to display study cards here." 
-          />
+          <View style={styles.center}>
+            <Text style={styles.emptyText}>No saved content layers bookmarked yet.</Text>
+          </View>
         }
       />
     </View>
@@ -92,7 +72,8 @@ function BookmarksScreen() {
 }
 
 const styles = StyleSheet.create({
-  paddingGrid: { padding: 16 }
+  container: { flex: 1, backgroundColor: "#0B1220", padding: 20 },
+  headerTitle: { color: "white", fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", marginTop: 40 },
+  emptyText: { color: "#6B7280", fontSize: 14 }
 });
-
-export default memo(BookmarksScreen);

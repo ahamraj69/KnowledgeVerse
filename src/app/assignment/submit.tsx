@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { useAuth } from "../../context/AuthContext";
-import { submitAssignment } from "../../services/assignmentService";
+import { submitAssignment } from "@/lib/assignmentService";
 import { Theme } from "../../theme/theme";
 
 export default function AssignmentSubmitScreen() {

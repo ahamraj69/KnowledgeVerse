@@ -16,7 +16,7 @@ import {
     addReply,
     DiscussionReply,
     subscribeReplies,
-} from "@/services/discussionService";
+} from "@/lib/discussionService";
 
 const COURSE_ID = "general";
 

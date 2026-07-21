@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from "expo-router"; // ✅ Step 2 FIXED: Mo
 
 import { useAuth } from "@/context/AuthContext";
 import { useNetwork } from "@/context/NetworkContext";
-import { subscribeDiscussions, likeDiscussion, Discussion } from "@/services/discussionService";
+import { subscribeDiscussions, likeDiscussion, Discussion } from "@/lib/discussionService";
 import SkeletonCard from "@/components/SkeletonCard";
 import EmptyState from "@/components/EmptyState";
 import { Theme } from "@/theme/theme";

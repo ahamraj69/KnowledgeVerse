@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
-import { Question } from "../services/quizService";
+import { Question } from "@/lib/quizService";
 
 interface Props {
   question: Question;

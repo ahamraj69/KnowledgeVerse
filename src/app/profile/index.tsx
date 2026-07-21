@@ -17,7 +17,7 @@ import {
   getUserProfile,
   updateUserProfile,
   UserProfile,
-} from "@/services/userService";
+} from "@/lib/userService";
 import { Theme } from "@/theme/theme";
 
 export default function ProfileScreen() {

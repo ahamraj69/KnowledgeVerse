@@ -5,7 +5,7 @@ import {
     View
 } from "react-native";
 
-import { Assignment } from "../services/assignmentService";
+import { Assignment } from "@/lib/assignmentService";
 
 interface Props {
   assignment: Assignment;

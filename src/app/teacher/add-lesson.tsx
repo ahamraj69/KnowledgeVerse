@@ -1,195 +1,53 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  Alert,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-} from "react-native";
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+// ✅ FIXED: Imported the correct standardized function from the lib lesson layer
+import { addLesson } from "@/lib/lessonService";
+import { Theme } from "@/theme/theme";
 
-import { createLesson } from "../../services/lessonService";
-
-export default function AddLesson() {
+export default function AddLessonScreen() {
+  const { courseId } = useLocalSearchParams();
   const router = useRouter();
-
-  const { courseId } = useLocalSearchParams<{
-    courseId: string;
-  }>();
-
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
-  const [pdfUrl, setPdfUrl] = useState("");
+  const [desc, setDesc] = useState("");
 
-  const saveLesson = async () => {
-    if (!courseId) {
-      Alert.alert("Error", "Course not selected.");
-      return;
-    }
-
-    if (
-      !title ||
-      !description ||
-      !videoUrl ||
-      !pdfUrl
-    ) {
-      Alert.alert(
-        "Missing Information",
-        "Please complete all fields."
-      );
-      return;
-    }
-
+  const handlePublish = async () => {
+    if (!title.trim() || !courseId) return;
     try {
-      await createLesson({
+      // ✅ FIXED: Invoking standard addLesson service layout parameter
+      await addLesson(String(courseId), {
         courseId: String(courseId),
-        title,
-        description,
-        videoUrl,
-        pdfUrl,
+        title: title.trim(),
+        description: desc.trim(),
+        type: "text",
+        content: "New lecture materials updated.",
+        duration: "10 Mins",
+        order: 1,
+        createdAt: Date.now()
       });
-
-      Alert.alert(
-        "Success",
-        "Lesson created successfully!",
-        [
-          {
-            text: "OK",
-            onPress: () => router.back(),
-          },
-        ]
-      );
-    } catch (error) {
-      console.log(error);
-
-      Alert.alert(
-        "Error",
-        "Failed to create lesson."
-      );
+      Alert.alert("Success 🎉", "Lesson module appended cleanly.");
+      router.back();
+    } catch (e) {
+      Alert.alert("Error", "Could not commit lesson tracking parameters.");
     }
   };
 
   return (
-    <ScrollView
-      style={{
-        flex: 1,
-        backgroundColor: "#0B1220",
-      }}
-      contentContainerStyle={{
-        padding: 20,
-      }}
-    >
-      <Text
-        style={{
-          color: "white",
-          fontSize: 28,
-          fontWeight: "bold",
-          marginBottom: 10,
-        }}
-      >
-        ➕ Add Lesson
-      </Text>
-
-      <Text
-        style={{
-          color: "#9CA3AF",
-          marginBottom: 25,
-        }}
-      >
-        Course ID:
-      </Text>
-
-      <Text
-        style={{
-          color: "#10B981",
-          marginBottom: 25,
-          fontWeight: "bold",
-        }}
-      >
-        {courseId}
-      </Text>
-
-      <TextInput
-        placeholder="Lesson Title"
-        placeholderTextColor="#9CA3AF"
-        value={title}
-        onChangeText={setTitle}
-        style={{
-          backgroundColor: "#1F2937",
-          color: "white",
-          padding: 15,
-          borderRadius: 12,
-          marginBottom: 15,
-        }}
-      />
-
-      <TextInput
-        placeholder="Lesson Description"
-        placeholderTextColor="#9CA3AF"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        style={{
-          backgroundColor: "#1F2937",
-          color: "white",
-          padding: 15,
-          borderRadius: 12,
-          height: 120,
-          textAlignVertical: "top",
-          marginBottom: 15,
-        }}
-      />
-
-      <TextInput
-        placeholder="Video URL"
-        placeholderTextColor="#9CA3AF"
-        value={videoUrl}
-        onChangeText={setVideoUrl}
-        autoCapitalize="none"
-        style={{
-          backgroundColor: "#1F2937",
-          color: "white",
-          padding: 15,
-          borderRadius: 12,
-          marginBottom: 15,
-        }}
-      />
-
-      <TextInput
-        placeholder="PDF URL"
-        placeholderTextColor="#9CA3AF"
-        value={pdfUrl}
-        onChangeText={setPdfUrl}
-        autoCapitalize="none"
-        style={{
-          backgroundColor: "#1F2937",
-          color: "white",
-          padding: 15,
-          borderRadius: 12,
-          marginBottom: 30,
-        }}
-      />
-
-      <TouchableOpacity
-        onPress={saveLesson}
-        style={{
-          backgroundColor: "#10B981",
-          padding: 16,
-          borderRadius: 12,
-        }}
-      >
-        <Text
-          style={{
-            color: "white",
-            textAlign: "center",
-            fontSize: 18,
-            fontWeight: "bold",
-          }}
-        >
-          💾 Save Lesson
-        </Text>
+    <View style={[Theme.screen, styles.container]}>
+      <Text style={styles.title}>Publish New Lesson</Text>
+      <TextInput placeholder="Input Lesson Title" placeholderTextColor="#6B7280" style={styles.input} value={title} onChangeText={setTitle} />
+      <TextInput placeholder="Input Description" placeholderTextColor="#6B7280" style={styles.input} value={desc} onChangeText={setDesc} />
+      <TouchableOpacity style={styles.btn} onPress={handlePublish}>
+        <Text style={styles.btnText}>Commit Lesson Node</Text>
       </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#0B1220", padding: 24, justifyContent: "center" },
+  title: { color: "white", fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+  input: { backgroundColor: "#111827", padding: 14, borderRadius: 10, color: "white", marginBottom: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.05)" },
+  btn: { backgroundColor: "#2563EB", padding: 16, borderRadius: 10, alignItems: "center" },
+  btnText: { color: "white", fontWeight: "bold" }
+});

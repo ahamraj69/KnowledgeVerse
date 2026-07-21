@@ -11,7 +11,7 @@ import {
 import {
   getStudents,
   Student,
-} from "../../services/studentService";
+} from "@/lib/studentService";
 
 export default function StudentsScreen() {
   // ✅ 4. Clean parameter signature alignment

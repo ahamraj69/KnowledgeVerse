@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 
-import { AISuggestion } from "../services/aiSuggestionService";
+import { AISuggestion } from "@/lib/aiSuggestionService";
 
 interface Props {
   suggestion: AISuggestion;

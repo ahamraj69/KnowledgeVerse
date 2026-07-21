@@ -6,7 +6,7 @@ import {
     View,
 } from "react-native";
 
-import { CourseNote } from "../services/notesService";
+import { CourseNote } from "@/lib/notesService";
 
 interface Props {
   note: CourseNote;

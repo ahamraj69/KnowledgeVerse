@@ -14,8 +14,8 @@ import {
 
 import { useAuth } from "@/context/AuthContext";
 import { useNetwork } from "@/context/NetworkContext";
-import { uploadImage } from "@/services/storageService";
-import { getVerification, submitVerification, TeacherVerification } from "@/services/teacherVerificationService";
+import { uploadImage } from "@/lib/storageService";
+import { getVerification, submitVerification, TeacherVerification } from "@/lib/teacherVerificationService";
 import { Theme } from "@/theme/theme";
 
 export default function TeacherVerificationScreen() {

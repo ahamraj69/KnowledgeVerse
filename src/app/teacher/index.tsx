@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useAuth } from "../../context/AuthContext";
-import { CourseServiceType, getCourses } from "../../services/courseListService";
+import { CourseServiceType, getCourses } from "@/lib/courseListService";
 import { Theme } from "../../theme/theme";
 
 export default function TeacherStudioScreen() {

@@ -15,7 +15,7 @@ import { useAuth } from "../../context/AuthContext";
 import {
   Assignment,
   getAssignments,
-} from "../../services/assignmentService";
+} from "@/lib/assignmentService";
 
 export default function AssignmentScreen() {
   const { courseId } = useLocalSearchParams<{

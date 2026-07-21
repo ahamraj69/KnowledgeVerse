@@ -1,325 +1,110 @@
+import React, { useEffect, useState, useCallback } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Image } from "react-native";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-import { useAuth } from "@/context/AuthContext";
-import { useNetwork } from "@/context/NetworkContext";
-import { addBookmark } from "@/services/bookmarkService";
-import { CourseServiceType, getCourses } from "@/services/courseListService";
-import {
-    addDownload,
-    isDownloaded,
-    removeDownload,
-} from "@/services/downloadService";
-import { addWishlist } from "@/services/wishlistService";
-// ✅ Step 2: Imported the notification generator service endpoint cleanly
-import CachedImage from "@/components/CachedImage";
-import { addNotification } from "@/services/notificationService";
-import { Colors } from "@/theme/colors";
-import { Theme } from "@/theme/theme";
+interface CourseData {
+  id: string;
+  title: string;
+  teacher: string;
+  description: string;
+  category: string;
+  thumbnail?: string;
+}
 
 export default function CourseDetailsScreen() {
   const { id } = useLocalSearchParams();
-  const { user } = useAuth();
-  const { isConnected } = useNetwork();
   const router = useRouter();
 
-  const [course, setCourse] = useState<CourseServiceType | null>(null);
+  const [course, setCourse] = useState<CourseData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [downloaded, setDownloaded] = useState(false);
 
-  const [reviewCount, setReviewCount] = useState(0);
-  const [averageRating, setAverageRating] = useState(0);
-
-  const loadCourseDetails = useCallback(async () => {
+  const fetchCourseDetails = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
-      const allCourses = await getCourses();
-      const selected = allCourses.find((c) => c.id === id);
-      setCourse(selected || null);
-    } catch (e) {
-      if (__DEV__) {
-        console.log("Error extracting course profile details:", e);
+      const docRef = doc(db, "courses", String(id));
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setCourse({ id: docSnap.id, ...docSnap.data() } as CourseData);
       }
+    } catch (error) {
+      console.error("Error reading structural metadata metrics: ", error);
     } finally {
       setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    loadCourseDetails();
-  }, [loadCourseDetails]);
+    fetchCourseDetails();
+  }, [fetchCourseDetails]);
 
-  useEffect(() => {
-    if (!user?.uid || !course?.id) return;
-
-    const checkDownloadStatus = async () => {
-      try {
-        const exists = await isDownloaded(user.uid, course.id);
-        setDownloaded(exists);
-      } catch (e) {
-        if (__DEV__) {
-          console.log("Error fetching offline cache registry tracker:", e);
-        }
-      }
-    };
-
-    checkDownloadStatus();
-  }, [user, course]);
-
-  // ✅ Step 3: Upgraded Enrollment trigger with contextual push telemetry logs
-  const handleEnroll = useCallback(async () => {
-    if (!user) {
-      router.push("/login" as any);
-      return;
-    }
+  const handleStartCourse = useCallback(() => {
     if (!course) return;
-
-    try {
-      await addNotification(
-        user.uid,
-        "Course Enrolled 🎉",
-        `You enrolled in "${course.title}".`
-      );
-      Alert.alert("Success", "Enrollment completed.");
-    } catch (e) {
-      if (__DEV__) console.log("Enrollment trigger notification log fault:", e);
-      Alert.alert("Success", "Enrollment completed.");
-    }
-  }, [user, course, router]);
-
-  // ✅ Step 4: Upgraded Bookmark triggers with clean message streams
-  const handleBookmark = useCallback(async () => {
-    if (!user || !course) {
-      Alert.alert("Login Required", "Please log in to bookmark material elements.");
-      return;
-    }
-    try {
-      await addBookmark(user.uid, {
-        courseId: course.id,
-        lessonId: course.id,
-        lessonTitle: course.title,
-      });
-
-      await addNotification(
-        user.uid,
-        "Bookmark Added 🔖",
-        `"${course.title}" was added to your bookmarks.`
-      );
-
-      Alert.alert("Success", "Course added to bookmarks library modules.");
-    } catch (e) {
-      if (__DEV__) {
-        console.log("Bookmark tracking crash loop intercepted:", e);
-      }
-      Alert.alert("Error", "Unable to save bookmark.");
-    }
-  }, [user, course]);
-
-  // ✅ Step 5: Upgraded Wishlist triggers with active real-time updates
-  const handleWishlist = useCallback(async () => {
-    if (!user || !course) {
-      Alert.alert("Login Required", "Please login first.");
-      return;
-    }
-
-    try {
-      await addWishlist(user.uid, {
-        courseId: course.id,
-        title: course.title,
-        thumbnail: course.thumbnail ?? "",
-      });
-
-      await addNotification(
-        user.uid,
-        "Wishlist Updated ❤️",
-        `"${course.title}" was added to your wishlist.`
-      );
-
-      Alert.alert("Success", "Course added to wishlist.");
-    } catch (e) {
-      if (__DEV__) {
-        console.log(e);
-      }
-      Alert.alert("Error", "Unable to add course.");
-    }
-  }, [user, course]);
-
-  // ✅ Step 6: Upgraded Download lifecycle handler with adaptive offline notifications
-  const handleDownload = useCallback(async () => {
-    if (!user?.uid || !course) {
-      Alert.alert("Login Required", "Please login first.");
-      return;
-    }
-
-    try {
-      if (downloaded) {
-        await removeDownload(user.uid, course.id);
-        setDownloaded(false);
-
-        await addNotification(
-          user.uid,
-          "Download Removed 🗑",
-          `"${course.title}" was removed from offline storage.`
-        );
-
-        Alert.alert("Removed", "Download removed.");
-        return;
-      }
-
-      await addDownload(user.uid, {
-        courseId: course.id,
-        lessonId: course.id,
-        lessonTitle: course.title,
-      });
-
-      setDownloaded(true);
-
-      await addNotification(
-        user.uid,
-        "Course Downloaded ⬇️",
-        `"${course.title}" is now available offline.`
-      );
-
-      Alert.alert("Success", "Course downloaded.");
-    } catch (e) {
-      if (__DEV__) {
-        console.log(e);
-      }
-      Alert.alert("Error", "Unable to download.");
-    }
-  }, [user?.uid, course, downloaded]);
-
-  const handleOpenReviews = useCallback(() => {
-    router.push("/reviews" as any);
-  }, [router]);
+    router.push(`/course/${course.id}/lessons` as any);
+  }, [router, course]);
 
   if (loading) {
     return (
-      <View style={[Theme.screen, styles.center]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={styles.loaderCenterContainer}>
+        <ActivityIndicator size="large" color="#38BDF8" />
       </View>
     );
   }
 
   if (!course) {
     return (
-      <View style={[Theme.screen, styles.center]}>
-        <Text style={Theme.text}>Course data target index not found.</Text>
+      <View style={styles.loaderCenterContainer}>
+        <Text style={styles.placeholderText}>Course Index Not Located</Text>
       </View>
     );
   }
 
-  const safeThumbnail = course.thumbnail || "https://placehold.co";
-  const rawPrice = (course as any).price;
-  const isFree = rawPrice === undefined || rawPrice === 0 || rawPrice === null;
-  const priceText = isFree ? "Free Stream" : `₹${rawPrice}`;
-
   return (
-    <ScrollView style={Theme.screen} contentContainerStyle={styles.content}>
-      <CachedImage uri={safeThumbnail} width="100%" height={210} borderRadius={14} />
-
-      <Text style={[Theme.text, styles.mainTitle]}>{course.title}</Text>
-
-      <View style={styles.ratingSummaryRow}>
-        <Text style={styles.ratingValueText}>
-          ⭐ {averageRating.toFixed(1)}
-        </Text>
-        <Text style={styles.ratingCountText}>
-          ({reviewCount} reviews)
-        </Text>
-      </View>
-
-      <View style={styles.metaRow}>
-        <Text style={[styles.priceTag, isFree && styles.freeTag]}>
-          {priceText}
-        </Text>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>
-            {(course as any).category || "General"}
-          </Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.listScrollContent}>
+      {course.thumbnail ? (
+        <Image source={{ uri: course.thumbnail }} style={styles.thumbnail} />
+      ) : (
+        <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
+          <Text style={styles.placeholderText}>📚</Text>
         </View>
+      )}
+
+      <Text style={styles.category}>{course.category.toUpperCase()}</Text>
+      <Text style={styles.courseTitle}>{course.title}</Text>
+      <Text style={styles.teacher}>Instructed by {course.teacher}</Text>
+
+      <View style={styles.metaPaddingCard}>
+        <Text style={styles.sectionTitle}>Course Syllabus Information</Text>
+        <Text style={styles.descriptionText}>
+          {course.description || "No foundational syllabus summary documentation provided for this reference asset matrix configuration block."}
+        </Text>
       </View>
 
-      <Text style={styles.sectionTitle}>
-        Curriculum Overview
-      </Text>
-
-      <Text style={[Theme.muted, styles.descText]}>
-        {course.description || "No extensive summary guidelines provided for this curriculum stream."}
-      </Text>
-
-      <View style={styles.actionBlock}>
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={handleEnroll}
-        >
-          <Text style={styles.primaryBtnText}>
-            Enroll in Course
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.reviewButton}
-          onPress={handleOpenReviews}
-        >
-          <Text style={styles.reviewButtonText}>
-            ⭐ View Reviews
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.secondaryRow}>
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={handleBookmark}
-          >
-            <Text style={styles.secondaryBtnText}>
-              🔖 Bookmark
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={handleWishlist}
-          >
-            <Text style={styles.secondaryBtnText}>
-              ❤️ Wishlist
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.fullWidthSecondaryBtn} onPress={handleDownload}>
-          <Text style={styles.secondaryBtnText}>
-            {downloaded ? "🗑️ Remove Download" : "⬇️ Download Course"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* ✅ Direct Entry Pathway: Substituted Paywall / Buy buttons with open access action hook */}
+      <Pressable style={styles.featureCard} onPress={handleStartCourse}>
+        <Text style={styles.featureCourse}>🚀 Start Learning Now</Text>
+        <Text style={styles.featureSubtitle}>This path provides uninhibited 100% open access to educational matrices</Text>
+      </Pressable>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 40 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  mainTitle: { fontSize: 24, fontWeight: "bold", marginTop: 20, marginBottom: 4 },
-  ratingSummaryRow: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
-  ratingValueText: { color: "#FACC15", fontWeight: "bold", fontSize: 16 },
-  ratingCountText: { color: "#9CA3AF", marginLeft: 8, fontSize: 14, fontWeight: "500" },
-  metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
-  priceTag: { fontSize: 22, fontWeight: "800", color: "#FACC15" },
-  freeTag: { color: "#10B981" },
-  categoryBadge: { backgroundColor: "#1F2937", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.05)" },
-  categoryText: { color: "#9CA3AF", fontSize: 13, fontWeight: "600" },
-  sectionTitle: { color: "white", fontSize: 18, fontWeight: "700", marginBottom: 10 },
-  descText: { fontSize: 15, lineHeight: 24, marginBottom: 30 },
-  actionBlock: { gap: 14 },
-primaryBtn: { backgroundColor: Colors.primary, padding: 16, borderRadius: 12, alignItems: "center", justifyContent: "center", minHeight: 54 },primaryBtnText: { color: "white", fontSize: 17, fontWeight: "bold" },reviewButton: { backgroundColor: "#F59E0B", padding: 15, borderRadius: 12, alignItems: "center", justifyContent: "center", minHeight: 50 },reviewButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },secondaryRow: { flexDirection: "row", gap: 12 },secondaryBtn: { flex: 1, backgroundColor: "#111827", padding: 14, borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.05)", flexDirection: "row", justifyContent: "center", gap: 6, minHeight: 48 },fullWidthSecondaryBtn: { width: "100%", backgroundColor: "#111827", padding: 14, borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.05)", flexDirection: "row", justifyContent: "center", gap: 6, minHeight: 48 },secondaryBtnText: { color: "white", fontSize: 15, fontWeight: "600" },});
+  container: { flex: 1, backgroundColor: "#0F172A" },
+  loaderCenterContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0F172A" },
+  listScrollContent: { padding: 16, paddingBottom: 40 },
+  thumbnail: { width: "100%", height: 200, borderRadius: 16, marginBottom: 16 },
+  thumbnailPlaceholder: { backgroundColor: "#111827", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.03)" },
+  placeholderText: { color: "white", fontSize: 16, fontWeight: "bold" },
+  category: { color: "#38BDF8", fontSize: 13, fontWeight: "700", marginBottom: 6 },
+  courseTitle: { fontSize: 24, fontWeight: "bold", color: "white", marginBottom: 4 },
+  teacher: { color: "#9CA3AF", fontSize: 14, fontWeight: "500", marginBottom: 20 },
+  metaPaddingCard: { backgroundColor: "#111827", padding: 16, borderRadius: 14, marginBottom: 24, borderWidth: 1, borderColor: "rgba(255,255,255,0.03)" },
+  sectionTitle: { color: "white", fontSize: 16, fontWeight: "bold", marginBottom: 8 },
+  descriptionText: { color: "#D1D5DB", fontSize: 14, lineHeight: 22 },
+  featureCard: { backgroundColor: "#2563EB", padding: 20, borderRadius: 16, alignItems: "center" },
+  featureCourse: { color: "white", fontSize: 18, fontWeight: "bold" },
+  featureSubtitle: { color: "#DBEAFE", marginTop: 4, fontSize: 12, textAlign: "center" }
+});

@@ -1,96 +1,55 @@
-import { useRouter } from "expo-router";
-import { ScrollView, Text, TouchableOpacity } from "react-native";
-import { Theme } from "../../theme/theme";
+import React from "react";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 
-interface CardProps {
-  title: string;
-  icon: string;
-  color: string;
-  onPress: () => void;
-}
-
-function Card({ title, icon, color, onPress }: CardProps) {
+export default function TeacherDashboardScreen() {
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={{
-        backgroundColor: color,
-        padding: 18,
-        borderRadius: 12,
-        marginBottom: 15,
-        flexDirection: "row",
-        alignItems: "center",
-      }}
-    >
-      <Text style={{ fontSize: 24, marginRight: 15 }}>{icon}</Text>
-      <Text style={{ color: "white", fontSize: 18, fontWeight: "bold" }}>{title}</Text>
-    </TouchableOpacity>
-  );
-}
+    <ScrollView style={styles.container} contentContainerStyle={styles.listScrollContent}>
+      <Text style={styles.sectionTitle}>Instructor Console</Text>
+      
+      <View style={styles.quickGrid}>
+        <View style={styles.quickCard}>
+          <Text style={styles.quickIcon}>?????</Text>
+          <Text style={styles.statsValue}>1,250</Text>
+          <Text style={styles.quickText}>Active Students</Text>
+        </View>
+        
+        <View style={styles.quickCard}>
+          <Text style={styles.quickIcon}>??</Text>
+          <Text style={styles.statsValue}>18</Text>
+          <Text style={styles.quickText}>Total Courses</Text>
+        </View>
 
-export default function TeacherDashboard() {
-  const router = useRouter();
+        <View style={styles.quickCard}>
+          <Text style={styles.quickIcon}>??</Text>
+          <Text style={styles.statsValue}>95</Text>
+          <Text style={styles.quickText}>Published Lessons</Text>
+        </View>
 
-  return (
-    <ScrollView style={Theme.screen} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-      <Text style={[Theme.text, { fontSize: 30, fontWeight: "bold" }]}>👨‍🏫 Teacher Dashboard</Text>
-      <Text style={[Theme.muted, { marginTop: 5, marginBottom: 30, fontSize: 15 }]}>
-        Manage your courses and teaching resources
-      </Text>
+        <View style={styles.quickCard}>
+          <Text style={styles.quickIcon}>?</Text>
+          <Text style={styles.statsValue}>4.9</Text>
+          <Text style={styles.quickText}>Course Rating</Text>
+        </View>
+      </View>
 
-      <Card
-        title="Create Course"
-        icon="➕"
-        color="#10B981"
-        onPress={() => router.push("/teacher/create-course")}
-      />
-
-      <Card
-        title="My Courses"
-        icon="📖"
-        color="#2563EB"
-        onPress={() => router.push("/teacher/my-courses")}
-      />
-
-      <Card
-        title="Upload Video"
-        icon="🎥"
-        color="#7C3AED"
-        onPress={() => router.push("/teacher/upload-video")}
-      />
-
-      <Card
-        title="Upload PDF"
-        icon="📄"
-        color="#F59E0B"
-        onPress={() => router.push("/teacher/upload-pdf")}
-      />
-
-      {/* ✅ FIXED: Dynamic type cast bypasses generated router cache compilation failures entirely */}
-      <Card
-        title="Students"
-        icon="👨‍🎓"
-        color="#06B6D4"
-        onPress={() =>
-          router.push({
-            pathname: "/teacher/students" as any,
-          })
-        }
-      />
-
-      <Card
-        title="Earnings"
-        icon="💰"
-        color="#22C55E"
-        onPress={() => router.push("/teacher/my-courses")}
-      />
-
-      <Card
-        title="Analytics"
-        icon="📊"
-        color="#EF4444"
-        onPress={() => router.push("/teacher/my-courses")}
-      />
+      <View style={styles.metaPaddingCard}>
+        <Text style={styles.courseTitle}>?? Completion Velocity</Text>
+        <Text style={styles.recommendTeacherText}>87% of enrolled students successfully finish syllabus milestones.</Text>
+      </View>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#0F172A" },
+  listScrollContent: { padding: 16, paddingBottom: 40 },
+  sectionTitle: { color: "white", fontSize: 22, fontWeight: "bold", marginBottom: 20 },
+  quickGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 15 },
+  quickCard: { width: "48%", backgroundColor: "#111827", borderRadius: 18, paddingVertical: 22, alignItems: "center", marginBottom: 15, borderWidth: 1, borderColor: "rgba(255,255,255,0.03)" },
+  quickIcon: { fontSize: 34 },
+  statsValue: { color: "#FFFFFF", fontSize: 24, fontWeight: "bold", marginTop: 6 },
+  quickText: { color: "#9CA3AF", fontWeight: "600", marginTop: 6, fontSize: 13 },
+  metaPaddingCard: { backgroundColor: "#111827", padding: 18, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.03)" },
+  courseTitle: { fontSize: 16, fontWeight: "bold", color: "white" },
+  recommendTeacherText: { color: "#94A3B8", fontSize: 13, marginTop: 6 }
+});

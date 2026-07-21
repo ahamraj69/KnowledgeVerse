@@ -7,7 +7,7 @@ import {
     View,
 } from "react-native";
 
-import { pickAndUploadPDF } from "../../services/pdfUploadService";
+import { pickAndUploadPDF } from "@/lib/pdfUploadService";
 
 export default function UploadPDF() {
   const [loading, setLoading] = useState(false);

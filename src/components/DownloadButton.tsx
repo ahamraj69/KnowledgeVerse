@@ -1,78 +1,57 @@
+import { addDownload, isDownloaded, removeDownload } from "@/lib/downloadService";
 import { useEffect, useState } from "react";
-import { Text, TouchableOpacity } from "react-native";
-import { useAuth } from "../context/AuthContext";
-import {
-  addDownload,
-  isDownloaded,
-  removeDownload
-} from "../services/downloadService";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from "react-native";
 
-interface Props {
-  courseId: string;
+interface DownloadButtonProps {
+  userId: string;
   lessonId: string;
   lessonTitle: string;
 }
 
-export default function DownloadButton({
-  courseId,
-  lessonId,
-  lessonTitle,
-}: Props) {
-  // ✅ FIX: Injected active 'user' object context cleanly into your component scope
-  const { user } = useAuth();
-  const [isDownloadedState, setIsDownloadedState] = useState<boolean>(false);
+export default function DownloadButton({ userId, lessonId, lessonTitle }: DownloadButtonProps) {
+  const [cached, setCached] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!user?.uid) return;
+    async function checkCacheState() {
+      if (!userId || !lessonId) return;
+      const exists = await isDownloaded(userId, lessonId);
+      setCached(exists);
+    }
+    checkCacheState();
+  }, [userId, lessonId]);
 
-    const checkDownloadStatus = async () => {
-      try {
-        const status = await isDownloaded(user.uid, lessonId);
-        setIsDownloadedState(status);
-      } catch (e) {
-        console.log(e);
-      }
-    };
-
-    checkDownloadStatus();
-  }, [user?.uid, lessonId]);
-
-  const handleDownloadAction = async () => {
-    if (!user?.uid) return;
-
+  const handleToggleDownload = async () => {
+    if (!userId || !lessonId) return;
     try {
-      if (isDownloadedState) {
-        await removeDownload(user.uid, lessonId);
-        setIsDownloadedState(false);
+      setLoading(true);
+      if (cached) {
+        // ✅ FIXED: Invoking the clean single-argument downloadId removal query parameter
+        await removeDownload(`${userId}_${lessonId}`);
+        setCached(false);
       } else {
-        await addDownload(user.uid, {
-          courseId,
-          lessonId,
-          lessonTitle,
-        });
-        setIsDownloadedState(true);
+        await addDownload(userId, lessonId, lessonTitle);
+        setCached(true);
       }
     } catch (e) {
-      console.log(e);
+      console.log("Offline caching error toggle trace:", e);
+    } finally {
+      setLoading(false);
     }
   };
 
+  if (loading) return <ActivityIndicator size="small" color="#38BDF8" style={styles.loader} />;
+
   return (
-    <TouchableOpacity
-      onPress={handleDownloadAction}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#1F2937",
-        padding: 12,
-        borderRadius: 10,
-        marginTop: 10,
-        justifyContent: "center",
-      }}
-    >
-      <Text style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>
-        {isDownloadedState ? "📥 Saved Offline" : "💾 Download Lesson"}
-      </Text>
+    <TouchableOpacity style={[styles.btn, cached && styles.active]} onPress={handleToggleDownload}>
+      <Text style={styles.text}>{cached ? "📥 Saved Offline" : "📥 Download Lesson"}</Text>
     </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  btn: { padding: 12, backgroundColor: "#111827", borderRadius: 10, alignItems: "center", justifyContent: "center", minHeight: 44, borderWidth: 1, borderColor: "rgba(255,255,255,0.03)" },
+  active: { backgroundColor: "rgba(16,185,129,0.15)", borderColor: "#10B981" },
+  text: { color: "white", fontSize: 14, fontWeight: "600" },
+  loader: { padding: 12 }
+});

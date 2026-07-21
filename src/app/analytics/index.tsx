@@ -3,7 +3,7 @@ import { memo, useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useAuth } from "../../context/AuthContext";
-import { getUserAnalytics, UserAnalytics } from "../../services/analyticsService";
+import { getUserAnalytics, UserAnalytics } from "@/lib/analyticsService";
 import { Theme } from "../../theme/theme";
 
 function AnalyticsScreen() {

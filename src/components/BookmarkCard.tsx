@@ -1,75 +1,26 @@
-import {
-    Alert,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+// ✅ FIXED: Redirected types import reference to pull cleanly out of root chat contracts [INDEX]
+import { Bookmark } from "@/types/chat";
 
-import { Bookmark } from "../services/bookmarkService";
-
-interface Props {
+interface BookmarkCardProps {
   bookmark: Bookmark;
   onOpen: (courseId: string) => void;
-  onDelete: (bookmarkId: string) => Promise<void>;
+  onDelete: (id: string) => void;
 }
 
-export default function BookmarkCard({
-  bookmark,
-  onOpen,
-  onDelete,
-}: Props) {
-  const confirmDelete = () => {
-    Alert.alert(
-      "Remove Bookmark",
-      "Do you want to remove this bookmark?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            if (bookmark.id) {
-              await onDelete(bookmark.id);
-            }
-          },
-        },
-      ]
-    );
-  };
-
+export default function BookmarkCard({ bookmark, onOpen, onDelete }: BookmarkCardProps) {
   return (
     <View style={styles.card}>
-      <Text style={styles.course}>
-        📚 {bookmark.courseId}
-      </Text>
-
-      <Text style={styles.lesson}>
-        {bookmark.lessonTitle}
-      </Text>
-
+      <View style={styles.info}>
+        <Text style={styles.course}>Ref Track: {bookmark.courseId}</Text>
+        <Text style={styles.title}>{bookmark.lessonTitle}</Text>
+      </View>
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.openButton}
-          onPress={() =>
-            onOpen(bookmark.courseId)
-          }
-        >
-          <Text style={styles.buttonText}>
-            ▶ Open
-          </Text>
+        <TouchableOpacity style={styles.openBtn} onPress={() => onOpen(bookmark.courseId)}>
+          <Text style={styles.openText}>Resume</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={confirmDelete}
-        >
-          <Text style={styles.buttonText}>
-            🗑 Delete
-          </Text>
+        <TouchableOpacity onPress={() => onDelete(bookmark.id)}>
+          <Text style={styles.deleteText}>🗑️</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -77,53 +28,12 @@ export default function BookmarkCard({
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: "#1F2937",
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 16,
-  },
-
-  course: {
-    color: "#60A5FA",
-    fontSize: 14,
-    marginBottom: 6,
-    fontWeight: "600",
-  },
-
-  lesson: {
-    color: "white",
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-
-  actions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 18,
-  },
-
-  openButton: {
-    flex: 1,
-    backgroundColor: "#2563EB",
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    marginRight: 8,
-  },
-
-  deleteButton: {
-    flex: 1,
-    backgroundColor: "#DC2626",
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    marginLeft: 8,
-  },
-
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 15,
-  },
+  card: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#111827", padding: 16, borderRadius: 14, marginBottom: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.02)" },
+  info: { flex: 1, paddingRight: 10 },
+  course: { color: "#38BDF8", fontSize: 11, fontWeight: "700" },
+  title: { color: "white", fontSize: 16, fontWeight: "bold", marginTop: 2 },
+  actions: { flexDirection: "row", alignItems: "center", gap: 14 },
+  openBtn: { backgroundColor: "#2563EB", paddingVertical: 6, paddingHorizontal: 14, borderRadius: 8 },
+  openText: { color: "white", fontWeight: "bold", fontSize: 13 },
+  deleteText: { fontSize: 16, opacity: 0.7 }
 });

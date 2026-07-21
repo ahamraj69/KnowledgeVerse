@@ -1,4 +1,4 @@
-import { DiscussionReply } from "@/services/discussionService";
+import { DiscussionReply } from "@/lib/discussionService";
 import { StyleSheet, Text, View } from "react-native";
 
 interface Props {

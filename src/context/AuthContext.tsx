@@ -1,14 +1,14 @@
 import {
-  onAuthStateChanged,
-  signOut,
-  User,
+    onAuthStateChanged,
+    signOut,
+    User,
 } from "firebase/auth";
 import {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
+    createContext,
+    ReactNode,
+    useContext,
+    useEffect,
+    useState,
 } from "react";
 
 import { auth } from "../lib/firebase";
@@ -19,42 +19,27 @@ type AuthContextType = {
   logout: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
-);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({
+export function AuthProvider({
   children,
 }: {
   children: ReactNode;
-}) => {
+}) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ✅ Phase 2: Added error handler to stop loading state even if connection fails
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (currentUser) => {
-        setUser(currentUser);
-        setLoading(false); 
-      },
-      (error) => {
-        console.log("Authentication state evaluation anomaly caught:", error);
-        setUser(null);
-        setLoading(false); 
-      }
-    );
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setLoading(false);
+    });
 
     return unsubscribe;
   }, []);
 
   const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.log("Error during logout session execution:", error);
-    }
+    await signOut(auth);
   };
 
   return (
@@ -68,14 +53,14 @@ export const AuthProvider = ({
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
+
   if (!context) {
-    throw new Error(
-      "useAuth must be used inside AuthProvider"
-    );
+    throw new Error("useAuth must be used inside AuthProvider");
   }
+
   return context;
-};
+}

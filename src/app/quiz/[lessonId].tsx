@@ -11,7 +11,7 @@ import QuestionCard from "../../components/QuestionCard";
 import {
   getQuizByLesson,
   Quiz
-} from "../../services/quizService";
+} from "@/lib/quizService";
 
 export default function QuizScreen() {
   const { lessonId } = useLocalSearchParams();

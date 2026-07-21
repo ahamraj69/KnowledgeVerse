@@ -1,8 +1,8 @@
 import { useRouter } from "expo-router";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { auth, db } from "../lib/firebase";
 import { Colors } from "../theme/colors";
@@ -10,6 +10,7 @@ import { Theme } from "../theme/theme";
 
 export default function SignupScreen() {
   const router = useRouter();
+  
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,8 +37,8 @@ export default function SignupScreen() {
       const secureUserRef = userCredential.user;
 
       await updateProfile(secureUserRef, { displayName: cleanName });
+      await sendEmailVerification(secureUserRef);
 
-      // ✅ RESTORED: Standard base document data creation model
       await setDoc(doc(db, "users", secureUserRef.uid), {
         uid: secureUserRef.uid,
         name: cleanName,
@@ -48,8 +49,13 @@ export default function SignupScreen() {
         createdAt: Date.now(), 
       });
 
-      Alert.alert("Success", "Account generated successfully! 🎉");
-      router.replace("/" as any);
+      Alert.alert(
+        "Verify Your Email",
+        "Your account has been created. We've sent a verification email. Please verify your email before applying to become a teacher."
+      );
+      
+      // ✅ Step 3 FIXED: Redirects straight to the active /feed target route file path
+      router.replace("/feed" as any);
     } catch (error) {
       console.log("Account registration fault catches:", error);
       Alert.alert("Registration Failed", "Something went wrong while setting up your profile. Please try again.");
@@ -88,7 +94,7 @@ export default function SignupScreen() {
         placeholderTextColor="#9CA3AF"
         value={password}
         onChangeText={setPassword}
-        secureTextEntry
+        secureTextEntry={true}
         editable={!loading}
         style={styles.input}
       />
@@ -98,7 +104,7 @@ export default function SignupScreen() {
         onPress={handleSignup} 
         style={[styles.btn, { backgroundColor: Colors.success, opacity: loading ? 0.6 : 1 }]}
       >
-        <Text style={[Theme.text, styles.btnText]}>{loading ? "Generating Profile..." : "Sign Up"}</Text>
+        {loading ? <ActivityIndicator color="white" /> : <Text style={[Theme.text, styles.btnText]}>Sign Up</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity disabled={loading} onPress={() => router.push("/login" as any)} style={styles.linkGap}>
@@ -112,16 +118,7 @@ const styles = StyleSheet.create({
   container: { padding: 24, justifyContent: "center", flex: 1, backgroundColor: "#0F172A" },
   title: { fontSize: 32, fontWeight: "bold" },
   subtitle: { fontSize: 16, marginTop: 6, marginBottom: 30 },
-  input: {
-    backgroundColor: "#111827",
-    color: "white",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.05)",
-    fontSize: 16,
-  },
+  input: { backgroundColor: "#111827", color: "white", padding: 16, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.05)", fontSize: 16 },
   btn: { padding: 16, borderRadius: 12, alignItems: "center", marginTop: 10, minHeight: 52, justifyContent: "center" },
   btnText: { fontWeight: "bold", fontSize: 17 },
   linkGap: { marginTop: 20 },

@@ -9,7 +9,7 @@ import {
 import CodeEditor from "../../components/CodeEditor";
 import OutputConsole from "../../components/OutputConsole";
 import { useLoading } from "../../context/LoadingContext";
-import { runCode } from "../../services/playgroundService";
+import { runCode } from "@/lib/playgroundService";
 import { Colors } from "../../theme/colors"; // ✅ Added Theme
 import { Theme } from "../../theme/theme"; // ✅ Added Theme
 

@@ -1,16 +1,29 @@
-import { View, type ViewProps } from 'react-native';
+import { StyleSheet, Text, TextProps } from "react-native";
 
-import { ThemeColor } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
-
-export type ThemedViewProps = ViewProps & {
-  lightColor?: string;
-  darkColor?: string;
-  type?: ThemeColor;
-};
-
-export function ThemedView({ style, lightColor, darkColor, type, ...otherProps }: ThemedViewProps) {
-  const theme = useTheme();
-
-  return <View style={[{ backgroundColor: theme[type ?? 'background'] }, style]} {...otherProps} />;
+interface ThemedTextProps extends TextProps {
+  type?: "title" | "subtitle" | "body" | "muted";
 }
+
+export default function ThemedText({ children, type = "body", style, ...props }: ThemedTextProps) {
+  return (
+    <Text
+      style={[
+        type === "title" && styles.title,
+        type === "subtitle" && styles.subtitle,
+        type === "body" && styles.body,
+        type === "muted" && styles.muted,
+        style,
+      ]}
+      {...props}
+    >
+      {children}
+    </Text>
+  );
+}
+
+const styles = StyleSheet.create({
+  title: { color: "white", fontSize: 24, fontWeight: "bold" },
+  subtitle: { color: "white", fontSize: 18, fontWeight: "600" },
+  body: { color: "#E5E7EB", fontSize: 15, lineHeight: 22 },
+  muted: { color: "#9CA3AF", fontSize: 14 },
+});

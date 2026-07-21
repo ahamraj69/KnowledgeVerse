@@ -1,82 +1,50 @@
+import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
-import { Text, TouchableOpacity } from "react-native";
-import { useAuth } from "../context/AuthContext";
-import {
-  addBookmark,
-  getBookmarkByLesson,
-  removeBookmark
-} from "../services/bookmarkService";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
+// ✅ FIXED: Re-pointed to the clean core bookmarkService exports
+import { bookmarkLesson, isLessonBookmarked, removeBookmark } from "@/lib/bookmarkService";
 
-interface Props {
+interface BookmarkButtonProps {
   courseId: string;
   lessonId: string;
   lessonTitle: string;
 }
 
-export default function BookmarkButton({
-  courseId,
-  lessonId,
-  lessonTitle,
-}: Props) {
-  // ✅ FIX: Injected active 'user' object context cleanly into your component scope
+export default function BookmarkButton({ courseId, lessonId, lessonTitle }: BookmarkButtonProps) {
   const { user } = useAuth();
-  const [bookmarkId, setBookmarkId] = useState<string | null>(null);
+  const [bookmarked, setBookmarked] = useState(false);
 
   useEffect(() => {
+    async function checkState() {
+      if (!user?.uid || !lessonId) return;
+      const res = await isLessonBookmarked(user.uid, lessonId);
+      setBookmarked(res);
+    }
+    checkState();
+  }, [user, lessonId]);
+
+  const handleToggle = async () => {
     if (!user?.uid) return;
-
-    const checkStatus = async () => {
-      try {
-        const item = await getBookmarkByLesson(user.uid, lessonId);
-        if (item) {
-          setBookmarkId(lessonId);
-        } else {
-          setBookmarkId(null);
-        }
-      } catch (e) {
-        console.log(e);
-      }
-    };
-
-    checkStatus();
-  }, [user?.uid, lessonId]);
-
-  const toggleBookmark = async () => {
-    if (!user?.uid) return;
-
-    try {
-      if (bookmarkId) {
-        await removeBookmark(user.uid, lessonId);
-        setBookmarkId(null);
-      } else {
-        await addBookmark(user.uid, {
-          courseId,
-          lessonId,
-          lessonTitle,
-        });
-        setBookmarkId(lessonId); 
-      }
-    } catch (e) {
-      console.log(e);
+    
+    if (bookmarked) {
+      await removeBookmark(user.uid, lessonId);
+      setBookmarked(false);
+    } else {
+      // ✅ FIXED: Calling bookmarkLesson with clear, linear string parameter fields [INDEX]
+      await bookmarkLesson(user.uid, lessonId, courseId, lessonTitle);
+      setBookmarked(true);
     }
   };
 
   return (
-    <TouchableOpacity
-      onPress={toggleBookmark}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#1F2937",
-        padding: 12,
-        borderRadius: 10,
-        marginTop: 10,
-        justifyContent: "center",
-      }}
-    >
-      <Text style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>
-        {bookmarkId ? "❤️ Saved to Bookmarks" : "🖤 Bookmark Lesson"}
-      </Text>
+    <TouchableOpacity style={[styles.btn, bookmarked && styles.active]} onPress={handleToggle}>
+      <Text style={styles.text}>{bookmarked ? "🔖 Bookmarked" : "🔖 Save Lesson"}</Text>
     </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  btn: { padding: 12, backgroundColor: "#111827", borderRadius: 10, alignItems: "center", justifyContent: "center", minHeight: 44, borderWidth: 1, borderColor: "rgba(255,255,255,0.03)" },
+  active: { backgroundColor: "rgba(56,189,248,0.15)", borderColor: "#38BDF8" },
+  text: { color: "white", fontSize: 14, fontWeight: "600" }
+});

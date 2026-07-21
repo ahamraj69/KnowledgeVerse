@@ -8,7 +8,7 @@ import {
   addComment,
   deleteComment,
   getComments,
-} from "../../services/commentService";
+} from "@/lib/commentService";
 
 import { Comment } from "../../types/comment";
 
