@@ -29,9 +29,9 @@ export async function createUserProfile(uid: string, email: string, name: string
   const baseProfile: UserProfile = {
     uid,
     displayName: name || "Student",
-    name: name || "Student", // ✅ FIXED: Populating fallback variable matches contract types
+    name: name || "Student",
     email: email || "",
-    role: "student", // ✅ FIXED: Assigning structural platform security user role identity mapping
+    role: "student",
     photoURL: "",
     bio: "",
     school: "",
@@ -53,6 +53,11 @@ export async function createUserProfile(uid: string, email: string, name: string
     achievements: ["First Lesson"],
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    
+    // ✅ FIXED: Initialized default values to prevent type runtime issues
+    verifiedTeacher: false,
+    verificationStatus: "unapplied",
+    verifiedAt: 0
   };
 
   await setDoc(doc(db, Collections.USERS, uid), baseProfile);

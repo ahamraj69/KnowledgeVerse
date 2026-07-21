@@ -1,10 +1,8 @@
 export interface UserProfile {
   uid: string;
   displayName: string;
-  // ✅ FIXED: Added name alias to satisfy home feed greeting selectors natively
   name?: string;
   email: string;
-  // ✅ FIXED: Added role property string definition to allow role badge rendering
   role: string;
   photoURL?: string;
   bio?: string;
@@ -27,4 +25,9 @@ export interface UserProfile {
   achievements: string[];
   createdAt: number;
   updatedAt: number;
+  
+  // ✅ FIXED: Declared verification properties directly on the shared model
+  verifiedTeacher?: boolean;
+  verificationStatus?: "pending" | "approved" | "rejected" | "needs_more_info" | "unapplied";
+  verifiedAt?: number;
 }

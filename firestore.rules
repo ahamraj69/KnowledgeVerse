@@ -2,28 +2,131 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 👤 Enforces that users can only read/write their own profile records
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow update: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
+    // ==========================================
+    // 🛡️ CENTRAL ARCHITECTURE HELPER FUNCTIONS
+    // ==========================================
+    
+    // Checks if the incoming request packet contains a valid authenticated session token
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // 👨‍🏫 Public teacher profiles are readable by anyone, but editable ONLY by that specific teacher
+    // Resolves core user database attributes to verify explicit Admin security privileges
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    // Resolves core user database attributes to verify explicit Teacher security privileges
+    function isTeacher() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
+    }
+
+    // ==========================================
+    // 👤 1. USER ACCOUNTS & PROFILES (Phase 47)
+    // ==========================================
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // Users can only write or modify their own identity account profiles securely
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+    }
+
+    // 👨‍🏫 Public Teacher Meta Records Profile Shards (Phase 47 - Part 2)
     match /teachers/{teacherId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == teacherId;
+      allow read: if true; // Open visibility enables clean student syllabus catalog exploration lookups
+      allow write: if isAuthenticated() && request.auth.uid == teacherId;
+    }
+
+    // ==========================================
+    // ⏳ 2. TEACHER VERIFICATION SYSTEMS (Phase 48)
+    // ==========================================
+    match /teacherVerification/{requestId} {
+      // Allows active profiles to apply for instructor verification status codes
+      allow create: if isAuthenticated();
+      
+      // Verification requests are visible only to the owner teacher or platform admins
+      allow read: if isAuthenticated() && 
+        (request.auth.uid == resource.data.teacherId || isAdmin());
+        
+      // Restricts updates strictly to owner teachers when in rejected/info states or to global admins
+      allow update: if isAdmin() || (
+        isAuthenticated() && 
+        request.auth.uid == resource.data.teacherId && 
+        (resource.data.status == "rejected" || resource.data.status == "needs_more_info")
+      );
+      
+      allow delete: if false; // System auditing prevents deletion logs removals
     }
     
-    // 📊 Overall student progress records can only be viewed or modified by the owner
+    // ==========================================
+    // 📊 3. TRACKING & PROGRESSION METRICS (Phase 8 & 9)
+    // ==========================================
+    match /courseProgress/{progressId} {
+      allow read, write: if isAuthenticated() && 
+        (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_'));
+    }
+
     match /userProgress/{progressId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isAuthenticated() && 
+        (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_'));
     }
-    
-    // 📚 Enrolls, courses, and lessons are globally readable by active users
+
+    // 🔖 Saved Bookmarks Sub-collections Rules
+    match /bookmarks/{bookmarkId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == bookmarkId.split('_');
+    }
+
+    // Local Download Progress Tracking Cache Indicators
+    match /lessonProgress/{downloadId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == downloadId.split('_');
+    }
+
+    // ==========================================
+    // 📚 4. MASTER CURRICULUM CATALOG ARCHITECTURE
+    // ==========================================
     match /courses/{courseId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
+      allow read: if isAuthenticated();
+      
+      // ✅ Phase 48 - Part 4 FIXED: Server-side check strictly enforces verifiedTeacher == true for course creation [INDEX]
+      allow create: if isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verifiedTeacher == true;
+        
+      // Only authorized admins or verified teachers can modify or update course nodes
+      allow update, delete: if isAdmin() || (
+        isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verifiedTeacher == true
+      );
+      
+      // Cascades structural permissions down to sub-collection lesson modules dynamically
+      match /lessons/{lessonId} {
+        allow read: if isAuthenticated();
+        allow write: if isAdmin() || (
+          isAuthenticated() && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verifiedTeacher == true
+        );
+      }
+    }
+
+    // ==========================================
+    // 🤖 5. MULTI-TURN CONTEXT-AWARE AI CHATS (AI Tutor 2.0)
+    // ==========================================
+    match /aiChats/{chatId} {
+      allow read, delete, update: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow create: if isAuthenticated();
+    }
+
+    match /aiMessages/{messageId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // ==========================================
+    // 🔔 6. COMMUNICATION & SYSTEM ALERTS
+    // ==========================================
+    match /notifications/{notiId} {
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow write: if isAdmin() || isTeacher(); // Authorized nodes can distribute updates across queues
     }
   }
 }
