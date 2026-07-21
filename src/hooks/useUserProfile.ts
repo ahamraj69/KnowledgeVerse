@@ -1,84 +1,51 @@
-import {
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc,
-  updateDoc, // ✅ Step 1: Added firestore modification module
-} from "firebase/firestore";
-import { useEffect, useState, useCallback } from "react";
-
-import { auth, db } from "@/lib/firebase";
-
-export type UserProfile = {
-  uid: string;
-  name: string;
-  email: string;
-  photoURL: string;
-  role: string;
-  createdAt?: any;
-  lastLogin?: any;
-  streak?: number;
-  progress?: number;
-};
+import { auth } from "@/lib/firebase";
+import { createUserProfile, getUserProfile, updateLearningStats } from "@/lib/user/profileService";
+import { UserProfile } from "@/types/profile";
+import { useCallback, useEffect, useState } from "react";
 
 export function useUserProfile() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // ✅ Wrapped inside useCallback to eliminate re-mounting latency issues across layouts
-  const loadProfile = useCallback(async () => {
+  const refreshProfile = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const currentUser = auth.currentUser;
-
-      if (!currentUser) {
-        setLoading(false);
-        return;
+      setLoading(true);
+      setError(null);
+      // Synchronize asynchronous cross-reference analytics data parameters first
+      await updateLearningStats(currentUser.uid);
+      
+      let fetched = await getUserProfile(currentUser.uid);
+      if (!fetched) {
+        fetched = await createUserProfile(
+          currentUser.uid, 
+          currentUser.email || "", 
+          currentUser.displayName || "Student"
+        );
       }
-
-      const userRef = doc(db, "users", currentUser.uid);
-      const snapshot = await getDoc(userRef);
-
-      // ✅ Step 2: Records login telemetry timestamps and hydrates application state smoothly
-      if (snapshot.exists()) {
-        await updateDoc(userRef, {
-          lastLogin: serverTimestamp(),
-        });
-
-        const updated = await getDoc(userRef);
-        setProfile(updated.data() as UserProfile);
-      } else {
-        const newProfile: UserProfile = {
-          uid: currentUser.uid,
-          name: currentUser.displayName || "Student",
-          email: currentUser.email || "",
-          photoURL: currentUser.photoURL || "",
-          role: "student",
-          streak: 0,
-          progress: 0,
-        };
-
-        await setDoc(userRef, {
-          ...newProfile,
-          createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp(),
-        });
-
-        setProfile(newProfile);
-      }
-    } catch (error) {
-      console.log("Profile data mapping hydration exception caught:", error);
+      setProfile(fetched);
+    } catch (err: any) {
+      setError(err?.message || "Profile synchronization failure indices caught.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+    refreshProfile();
+  }, [refreshProfile]);
 
   return {
     profile,
     loading,
-    reload: loadProfile,
+    error,
+    refreshProfile,
   };
 }
