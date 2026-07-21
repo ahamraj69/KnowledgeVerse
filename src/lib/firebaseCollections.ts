@@ -10,6 +10,9 @@ export const Collections = {
   NOTIFICATIONS: "notifications",
   TEACHER_APPLICATIONS: "teacherApplications",
   TEACHER_PROFILES: "teacherProfiles",
+  
+  // ✅ FIXED: Appended missing collection name mapping token
+  REPORTS: "reports"
 } as const;
 
 export type CollectionName = typeof Collections[keyof typeof Collections];

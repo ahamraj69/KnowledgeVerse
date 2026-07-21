@@ -65,29 +65,29 @@ service cloud.firestore {
     // ==========================================
     match /courseProgress/{progressId} {
       allow read, write: if isAuthenticated() && 
-        (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_')[0]);
+        (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_'));
     }
 
     match /userProgress/{progressId} {
       allow read, write: if isAuthenticated() && 
-        (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_')[0]);
+        (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_'));
     }
 
     // 🔖 Saved Bookmarks Sub-collections Rules
     match /bookmarks/{bookmarkId} {
-      allow read, write: if isAuthenticated() && request.auth.uid == bookmarkId.split('_')[0];
+      allow read, write: if isAuthenticated() && request.auth.uid == bookmarkId.split('_');
     }
 
     // Local Download Progress Tracking Cache Indicators
     match /lessonProgress/{downloadId} {
-      allow read, write: if isAuthenticated() && request.auth.uid == downloadId.split('_')[0];
+      allow read, write: if isAuthenticated() && request.auth.uid == downloadId.split('_');
     }
 
     // ==========================================
-    // 📚 4. MASTER CURRICULUM CATALOG ARCHITECTURE (Phase 49 - Part 4)
+    // 📚 4. MASTER CURRICULUM CATALOG ARCHITECTURE (Phase 49)
     // ==========================================
     match /courses/{courseId} {
-      // ✅ Phase 49 - Part 4 FIXED: Multi-tier authorization evaluation filters lock entries tightly on server nodes [INDEX]
+      // Strict read rules ensure instructors can read only their own course tracking vectors unless approved [INDEX]
       allow read: if isAuthenticated() && (
         resource.data.status == "approved" || 
         request.auth.uid == resource.data.teacherId || 
@@ -119,7 +119,7 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // 🤖 5. MULTI-TURN CONTEXT-AWARE AI CHATS
+    // 🤖 5. MULTI-TURN CONTEXT-AWARE AI CHATS (AI Tutor 2.0)
     // ==========================================
     match /aiChats/{chatId} {
       allow read, delete, update: if isAuthenticated() && request.auth.uid == resource.data.userId;
@@ -136,6 +136,24 @@ service cloud.firestore {
     match /notifications/{notiId} {
       allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
       allow write: if isAdmin() || isTeacher(); // Authorized nodes can distribute updates across queues
+    }
+
+    // ==========================================
+    // 🚩 7. CONTENT MODERATION REPORTS (Phase 50)
+    // ==========================================
+    match /reports/{reportId} {
+      // ✅ Phase 50 - Part 4 FIXED: Allows any logged-in user to create and read reports, but restricts status modifications to Admins [INDEX]
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 🔒 8. SECURITY MODERATION ACTIONS (Phase 50 - Part 3)
+    // ==========================================
+    match /moderation/{recordId} {
+      // ✅ Phase 50 - Part 4 FIXED: Complete administrative locking over critical warning and suspension archives [INDEX]
+      allow read, write: if isAdmin();
     }
   }
 }

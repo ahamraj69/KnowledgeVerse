@@ -3,10 +3,10 @@ import { StyleSheet, Text, TextInput, View } from "react-native";
 export default function ApprovalCommentBox({ value, onChange }: { value: string; onChange: (t: string) => void }) {
   return (
     <View style={styles.box}>
-      <Text style={styles.label}>💬 ADMINISTRATIVE EVALUATION FEEDBACK</Text>
+      <Text style={styles.label}>📝 REVIE / MODERATION NOTES LOG</Text>
       <TextInput
         style={styles.input}
-        placeholder="Provide prescriptive revision steps if rejecting this course template draft..."
+        placeholder="Enter prescriptive remarks or decision logs context indices..."
         placeholderTextColor="#4B5563"
         value={value}
         onChangeText={onChange}
