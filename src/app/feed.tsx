@@ -15,6 +15,7 @@ import DashboardStats from "@/components/DashboardStats";
 import { useCourses } from "@/hooks/useCourses";
 import { useProgress } from "@/hooks/useProgress";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { isRecentlyApproved } from "@/lib/courseService"; // ✅ Step 5 structural badge lookups link
 import { Theme } from "@/theme/theme";
 
 export default function FeedScreen() {
@@ -125,29 +126,43 @@ export default function FeedScreen() {
             </View>
 
             {/* Live Courses Section Label */}
-            <Text style={styles.sectionTitle}>📚 Live Courses</Text>
+            <Text style={styles.sectionTitle}>📚 Live Approved Courses</Text>
             {courses.length === 0 && (
               <View style={styles.innerEmptyState}>
-                <Text style={styles.emptyStateSub}>No active courses matching criteria streams found.</Text>
+                <Text style={styles.emptyStateSub}>No active approved courses matching criteria streams found.</Text>
               </View>
             )}
           </>
         }
-        renderItem={({ item }) => (
-          <View style={styles.courseCard}>
-            {item.thumbnail ? (
-              <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
-            ) : (
-              <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
-                <Text style={styles.placeholderText}>📖 {item.title}</Text>
+        renderItem={({ item }) => {
+          // ✅ Step 5 FIXED: Conditionally appends a vibrant 'NEW' tag if approved within 7 days
+          const showNewBadge = isRecentlyApproved(item.approvedAt || item.createdAt);
+
+          return (
+            <View style={styles.courseCard}>
+              {item.thumbnail ? (
+                <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
+              ) : (
+                <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
+                  <Text style={styles.placeholderText}>📖 {item.title}</Text>
+                </View>
+              )}
+              
+              <View style={styles.titleContainerRow}>
+                <Text style={styles.courseTitle}>{item.title}</Text>
+                {showNewBadge && (
+                  <View style={styles.newBadgeContainer}>
+                    <Text style={styles.newBadgeText}>🆕 NEW</Text>
+                  </View>
+                )}
               </View>
-            )}
-            <Text style={styles.courseTitle}>{item.title}</Text>
-            <Text style={styles.teacher}>👨‍🏫 Instructor ID: {item.teacherId}</Text>
-            <Text style={styles.category}>📚 {item.category}</Text>
-            <Text style={styles.meta}>⭐ {item.rating}  •  🎓 {item.students} Students</Text>
-          </View>
-        )}
+
+              <Text style={styles.teacher}>👨‍🏫 Instructor ID: {item.teacherId}</Text>
+              <Text style={styles.category}>📚 {item.category}</Text>
+              <Text style={styles.meta}>⭐ {item.rating}  •  🎓 {item.students} Students</Text>
+            </View>
+          );
+        }}
         ListFooterComponent={
           <>
             {/* Saved Bookmarks Summary Section */}
@@ -197,11 +212,11 @@ const styles = StyleSheet.create({
   profileRoleText: { color: "#38BDF8", marginTop: 10, fontSize: 13, fontWeight: "700", letterSpacing: 0.5 },
   quoteCard: { backgroundColor: "#111827", padding: 18, borderRadius: 18, marginBottom: 25, borderWidth: 1, borderColor: "rgba(255,255,255,0.03)" },
   quoteTitle: { color: "#38BDF8", fontWeight: "bold", marginBottom: 10, fontSize: 15 },
-  quoteText: { color: "white", fontSize: 15, lineHeight: 24, fontWeight: "500" },
-  progressCard: { backgroundColor: "#111827", padding: 18, borderRadius: 18, marginBottom: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.03)" },
-  continueCard: { backgroundColor: "#172554", padding: 18, borderRadius: 18, marginBottom: 20, borderWidth: 1, borderColor: "rgba(56,189,248,0.15)" },
-  progressTitle: { fontSize: 20, fontWeight: "bold", color: "white", marginBottom: 10 },
-  progressText: { fontSize: 15, color: "#D1D5DB", marginTop: 5, fontWeight: "500" },
+quoteText: { color: "white", fontSize: 15, lineHeight: 24, fontWeight: "500" },
+progressCard: { backgroundColor: "#111827", padding: 18, borderRadius: 18, marginBottom: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.03)" },
+continueCard: { backgroundColor: "#172554", padding: 18, borderRadius: 18, marginBottom: 20, borderWidth: 1, borderColor: "rgba(56,189,248,0.15)" },
+progressTitle: { fontSize: 20, fontWeight: "bold", color: "white", marginBottom: 10 },
+progressText: { fontSize: 15, color: "#D1D5DB", marginTop: 5, fontWeight: "500" },
 recommendCard: { backgroundColor: "#1E293B", padding: 16, borderRadius: 14, marginBottom: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.02)" },
 recommendCourseTitle: { fontSize: 16, fontWeight: "bold", color: "white" },
 recommendTeacherText: { color: "#94A3B8", fontSize: 13, marginTop: 4, fontWeight: "500" },
@@ -214,7 +229,10 @@ courseCard: { backgroundColor: "#111827", padding: 18, borderRadius: 18, marginB
 thumbnail: { width: "100%", height: 180, borderRadius: 16, marginBottom: 14 },
 thumbnailPlaceholder: { backgroundColor: "#1F2937", justifyContent: "center", alignItems: "center" },
 placeholderText: { color: "#9CA3AF", fontSize: 16, fontWeight: "bold" },
-courseTitle: { fontSize: 20, fontWeight: "bold", color: "white" },
+titleContainerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+courseTitle: { fontSize: 20, fontWeight: "bold", color: "white", flex: 1 },
+newBadgeContainer: { backgroundColor: "rgba(56,189,248,0.15)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: "#38BDF8" },
+newBadgeText: { color: "#38BDF8", fontSize: 10, fontWeight: "800", letterSpacing: 0.3 },
 teacher: { color: "#9CA3AF", marginTop: 6, fontSize: 14, fontWeight: "500" },
 category: { color: "#38BDF8", marginTop: 6, fontSize: 14, fontWeight: "600" },
 meta: { marginTop: 10, color: "#D1D5DB", fontSize: 13, fontWeight: "500" },

@@ -11,7 +11,13 @@ export interface Course {
   students: number;
   rating: number;
   createdAt: number;
-  // ✅ FIXED: Added properties directly to unify data models across all display layers
   duration: string;
   difficulty: string;
+  
+  // ✅ Step 2 FIXED: Added workflow tracking metadata parameters
+  status: "draft" | "pending" | "approved" | "rejected";
+  submittedAt?: number;
+  approvedAt?: number;
+  reviewComment?: string;
+  reviewedBy?: string;
 }

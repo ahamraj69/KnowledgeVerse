@@ -65,39 +65,48 @@ service cloud.firestore {
     // ==========================================
     match /courseProgress/{progressId} {
       allow read, write: if isAuthenticated() && 
-        (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_'));
+        (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_')[0]);
     }
 
     match /userProgress/{progressId} {
       allow read, write: if isAuthenticated() && 
-        (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_'));
+        (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_')[0]);
     }
 
     // 🔖 Saved Bookmarks Sub-collections Rules
     match /bookmarks/{bookmarkId} {
-      allow read, write: if isAuthenticated() && request.auth.uid == bookmarkId.split('_');
+      allow read, write: if isAuthenticated() && request.auth.uid == bookmarkId.split('_')[0];
     }
 
     // Local Download Progress Tracking Cache Indicators
     match /lessonProgress/{downloadId} {
-      allow read, write: if isAuthenticated() && request.auth.uid == downloadId.split('_');
+      allow read, write: if isAuthenticated() && request.auth.uid == downloadId.split('_')[0];
     }
 
     // ==========================================
-    // 📚 4. MASTER CURRICULUM CATALOG ARCHITECTURE
+    // 📚 4. MASTER CURRICULUM CATALOG ARCHITECTURE (Phase 49 - Part 4)
     // ==========================================
     match /courses/{courseId} {
-      allow read: if isAuthenticated();
+      // ✅ Phase 49 - Part 4 FIXED: Multi-tier authorization evaluation filters lock entries tightly on server nodes [INDEX]
+      allow read: if isAuthenticated() && (
+        resource.data.status == "approved" || 
+        request.auth.uid == resource.data.teacherId || 
+        isAdmin()
+      );
       
-      // ✅ Phase 48 - Part 4 FIXED: Server-side check strictly enforces verifiedTeacher == true for course creation [INDEX]
+      // Server-side check strictly enforces verifiedTeacher == true for course creation
       allow create: if isAuthenticated() && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verifiedTeacher == true;
         
-      // Only authorized admins or verified teachers can modify or update course nodes
-      allow update, delete: if isAdmin() || (
+      // Only admins can finalize approval updates or modify locked live live courses
+      allow update: if isAdmin() || (
         isAuthenticated() && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verifiedTeacher == true
+        request.auth.uid == resource.data.teacherId && 
+        request.resource.data.status != "approved" &&
+        resource.data.status != "approved"
       );
+      
+      allow delete: if isAdmin();
       
       // Cascades structural permissions down to sub-collection lesson modules dynamically
       match /lessons/{lessonId} {
@@ -110,7 +119,7 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // 🤖 5. MULTI-TURN CONTEXT-AWARE AI CHATS (AI Tutor 2.0)
+    // 🤖 5. MULTI-TURN CONTEXT-AWARE AI CHATS
     // ==========================================
     match /aiChats/{chatId} {
       allow read, delete, update: if isAuthenticated() && request.auth.uid == resource.data.userId;
