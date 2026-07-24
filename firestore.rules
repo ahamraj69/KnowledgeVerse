@@ -142,7 +142,7 @@ service cloud.firestore {
     // 🚩 7. CONTENT MODERATION REPORTS (Phase 50)
     // ==========================================
     match /reports/{reportId} {
-      // ✅ Phase 50 - Part 4 FIXED: Allows any logged-in user to create and read reports, but restricts status modifications to Admins [INDEX]
+      // Allows any logged-in session user to open reports but restricts updates to Admins only [INDEX]
       allow create: if isAuthenticated();
       allow read: if isAuthenticated();
       allow update, delete: if isAdmin();
@@ -152,7 +152,18 @@ service cloud.firestore {
     // 🔒 8. SECURITY MODERATION ACTIONS (Phase 50 - Part 3)
     // ==========================================
     match /moderation/{recordId} {
-      // ✅ Phase 50 - Part 4 FIXED: Complete administrative locking over critical warning and suspension archives [INDEX]
+      // Enforces backend access locks over critical warning and ban records strictly to admins only [INDEX]
+      allow read, write: if isAdmin();
+    }
+    
+    // ==========================================
+    // 📊 9. GLOBAL SYSTEM ANALYTICS AUDITS (Phase 51)
+    // ==========================================
+    match /courseApprovalHistory/{historyId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /moderationHistory/{historyId} {
       allow read, write: if isAdmin();
     }
   }
