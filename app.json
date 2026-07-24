@@ -2,33 +2,39 @@
   "expo": {
     "name": "KnowledgeVerse",
     "slug": "knowledgeverse",
-    "scheme": "knowledgeverse",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/app-icon.png",
-    "userInterfaceStyle": "automatic",
-    "plugins": [
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "resizeMode": "contain",
-          "backgroundColor": "#0F172A"
-        }
-      ],
-      "expo-speech-recognition"
-    ],
+    "icon": "./assets/icon.png",
+    "scheme": "knowledgeverse",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B1220"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ahamraj.knowledgeverse",
+      "userInterfaceStyle": "dark"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0F172A"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B1220"
+      },
+      "package": "com.ahamraj.knowledgeverse",
+      "userInterfaceStyle": "dark",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO"
+      ],
+      "notification": {
+        "icon": "./assets/notification-icon.png",
+        "color": "#2563EB"
       }
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/favicon.png"
     }
   }
 }
