@@ -27,11 +27,11 @@
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO"
-      ],
-      "notification": {
-        "icon": "./assets/notification-icon.png",
-        "color": "#2563EB"
-      }
+      ]
+    },
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#2563EB"
     },
     "web": {
       "favicon": "./assets/favicon.png"

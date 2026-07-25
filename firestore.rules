@@ -21,7 +21,7 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // 👤 1. USER ACCOUNTS & PROFILES (Phase 47)
+    // 👤 1. USER ACCOUNTS & PROFILES 
     // ==========================================
     match /users/{userId} {
       allow read: if isAuthenticated();
@@ -35,7 +35,7 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // ⏳ 2. TEACHER VERIFICATION SYSTEMS (Phase 48)
+    // ⏳ 2. TEACHER VERIFICATION SYSTEMS
     // ==========================================
     match /teacherVerification/{requestId} {
       allow create: if isAuthenticated();
@@ -45,16 +45,14 @@ service cloud.firestore {
     }
     
     // ==========================================
-    // 📊 3. TRACKING & PROGRESSION METRICS (Phase 8 & 9)
+    // 📊 3. TRACKING & PROGRESSION METRICS
     // ==========================================
     match /courseProgress/{progressId} {
-      allow read, write: if isAuthenticated() && 
-        (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_'));
+      allow read, write: if isAuthenticated() && (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_'));
     }
 
     match /userProgress/{progressId} {
-      allow read, write: if isAuthenticated() && 
-        (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_'));
+      allow read, write: if isAuthenticated() && (request.auth.uid == resource.data.userId || request.auth.uid == progressId.split('_'));
     }
 
     match /bookmarks/{bookmarkId} {
@@ -66,25 +64,12 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // 📚 4. MASTER CURRICULUM CATALOG ARCHITECTURE (Phase 49)
+    // 📚 4. MASTER CURRICULUM CATALOG ARCHITECTURE
     // ==========================================
     match /courses/{courseId} {
-      allow read: if isAuthenticated() && (
-        resource.data.status == "approved" || 
-        request.auth.uid == resource.data.teacherId || 
-        isAdmin()
-      );
-      
-      allow create: if isAuthenticated() && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verifiedTeacher == true;
-        
-      allow update: if isAdmin() || (
-        isAuthenticated() && 
-        request.auth.uid == resource.data.teacherId && 
-        request.resource.data.status != "approved" &&
-        resource.data.status != "approved"
-      );
-      
+      allow read: if isAuthenticated() && (resource.data.status == "approved" || request.auth.uid == resource.data.teacherId || isAdmin());
+      allow create: if isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verifiedTeacher == true;
+      allow update: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.teacherId && request.resource.data.status != "approved" && resource.data.status != "approved");
       allow delete: if isAdmin();
       
       match /lessons/{lessonId} {
@@ -117,7 +102,7 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // 🚩 7. CONTENT MODERATION REPORTS (Phase 50)
+    // 🚩 7. CONTENT MODERATION REPORTS
     // ==========================================
     match /reports/{reportId} {
       allow create: if isAuthenticated();
@@ -126,14 +111,14 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // 🔒 8. SECURITY MODERATION ACTIONS (Phase 50 - Part 3)
+    // 🔒 8. SECURITY MODERATION ACTIONS
     // ==========================================
     match /moderation/{recordId} {
       allow read, write: if isAdmin();
     }
     
     // ==========================================
-    // 📊 9. GLOBAL SYSTEM ANALYTICS AUDITS (Phase 51)
+    // 📊 9. GLOBAL SYSTEM ANALYTICS AUDITS
     // ==========================================
     match /courseApprovalHistory/{historyId} {
       allow read, write: if isAdmin();
@@ -141,6 +126,25 @@ service cloud.firestore {
 
     match /moderationHistory/{historyId} {
       allow read, write: if isAdmin();
+    }
+
+    // ==========================================
+    // 🛡️ 10. IMMUTABLE SECURITY AUDIT LOGS (Phase 57)
+    // ==========================================
+    match /securityAuditLogs/{logId} {
+      // ✅ Step 4 FIXED: Allows write append mutations from active clients, but strictly denies update/delete operations to enforce audit trail immutability [INDEX].
+      allow create: if isAuthenticated();
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /systemSecurityAlerts/{alertId} {
+      allow create, read, update: if isAdmin();
+      allow delete: if false;
+    }
+    
+    match /security_brute_force_guards/{guardId} {
+      allow read, write: if isAuthenticated();
     }
   }
 }
